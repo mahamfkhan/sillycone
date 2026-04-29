@@ -1,0 +1,2126 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sillycone — Baby Product Hall of Fame</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍦</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* ── Light theme — Grand Budapest Hotel / Yes Colours ───── */
+  :root {
+    --bg:           #FFFFFF;
+    --surface:      #F9FAFA;
+    --surface-2:    #EAEBEC;
+    --primary:      #0047FF;
+    --primary-hover:#0038CC;
+    --primary-light:#DDEAFF;
+    --gold:         #C4792A;
+    --gold-bg:      #FFF0DC;
+    --text:         #3A1A1A;
+    --text-muted:   #9A6055;
+    --border:       #D4D6DA;
+    --love:         #2E8B5A;
+    --love-bg:      #EAF7F0;
+    --love-text:    #1A5C3A;
+    --pass:         #D4356A;
+    --pass-bg:      #FFE8F2;
+    --pass-text:    #8A1A42;
+    --meh:          #C47820;
+    --meh-bg:       #FFF4E0;
+    --radius:       12px;
+    --radius-sm:    8px;
+    --shadow:       0 1px 3px rgba(58,26,26,.08), 0 1px 2px rgba(58,26,26,.05);
+    --shadow-md:    0 4px 8px rgba(58,26,26,.10), 0 2px 4px rgba(58,26,26,.06);
+    --shadow-lg:    0 12px 24px rgba(58,26,26,.14), 0 4px 8px rgba(58,26,26,.07);
+  }
+
+  /* ── Dark theme — The Life Aquatic ──────────────────────── */
+  [data-theme="dark"] {
+    --bg:           #0A1628;
+    --surface:      #162038;
+    --surface-2:    #1E2E4A;
+    --primary:      #5599FF;
+    --primary-hover:#7AB3FF;
+    --primary-light:#0A1A3A;
+    --gold:         #E8C060;
+    --gold-bg:      #1E1500;
+    --text:         #E8E0D0;
+    --text-muted:   #8899AA;
+    --border:       #2A3E5A;
+    --love:         #34D399;
+    --love-bg:      #052A1A;
+    --love-text:    #6EE7B7;
+    --pass:         #F87171;
+    --pass-bg:      #2A1215;
+    --pass-text:    #FCA5A5;
+    --meh:          #FBBF24;
+    --meh-bg:       #1A1200;
+    --shadow:       0 1px 3px rgba(0,0,0,.4), 0 1px 2px rgba(0,0,0,.3);
+    --shadow-md:    0 4px 8px rgba(0,0,0,.5), 0 2px 4px rgba(0,0,0,.3);
+    --shadow-lg:    0 12px 24px rgba(0,0,0,.6), 0 4px 8px rgba(0,0,0,.4);
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    transition: background .2s, color .2s;
+  }
+
+  /* ── App Header ─────────────────────────────────────────── */
+  .app-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 28px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    transition: background .2s, border-color .2s;
+  }
+  .header-inner {
+    max-width: 1160px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    height: 62px;
+    gap: 36px;
+  }
+  .brand { display: flex; align-items: baseline; gap: 10px; flex-shrink: 0; }
+  .brand-name {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--primary);
+    letter-spacing: -.03em;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .brand-icon { font-size: 18px; line-height: 1; }
+  .brand-tagline {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 400;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+  .main-tabs { display: flex; gap: 2px; flex: 1; }
+  .main-tab {
+    padding: 6px 14px;
+    border-radius: 7px;
+    font-size: 13.5px;
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    font-family: inherit;
+    position: relative;
+    transition: color .15s, background .15s;
+    white-space: nowrap;
+  }
+  .main-tab:hover  { color: var(--text); background: var(--surface-2); }
+  .main-tab.active { color: var(--primary); background: var(--primary-light); font-weight: 600; }
+  .soon-badge {
+    position: absolute;
+    top: 1px; right: 0;
+    background: var(--gold);
+    color: #fff;
+    font-size: 7.5px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 4px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+
+  /* ── Pages ──────────────────────────────────────────────── */
+  .page { display: none; max-width: 1160px; margin: 0 auto; padding: 36px 28px; }
+  .page.active { display: block; }
+
+  /* ── Page header ────────────────────────────────────────── */
+  .page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    gap: 16px;
+  }
+  .page-title-group h1 { font-size: 26px; font-weight: 700; letter-spacing: -.03em; }
+  .page-title-group p  { font-size: 13.5px; color: var(--text-muted); margin-top: 4px; }
+
+  /* ── Buttons ────────────────────────────────────────────── */
+  .btn-add {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 18px;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background .15s, transform .15s, box-shadow .15s;
+    flex-shrink: 0;
+  }
+  .btn-add:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+
+  /* ── Filter-stat cards ──────────────────────────────────── */
+  .filter-stats {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+  .fstat {
+    flex: 1;
+    min-width: 120px;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: inherit;
+    text-align: left;
+    box-shadow: var(--shadow);
+    transition: all .15s;
+  }
+  .fstat:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); border-color: var(--text-muted); }
+  .fstat-icon  { font-size: 18px; line-height: 1; flex-shrink: 0; }
+  .fstat-count { font-size: 21px; font-weight: 700; letter-spacing: -.04em; line-height: 1; color: var(--text); transition: color .15s; }
+  .fstat-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; margin-top: 3px; }
+
+  .fstat.active                { border-color: var(--primary); background: var(--primary-light); }
+  .fstat.active .fstat-count   { color: var(--primary); }
+  .fstat.fs-love.active        { border-color: var(--love); background: var(--love-bg); }
+  .fstat.fs-love.active .fstat-count { color: var(--love); }
+  .fstat.fs-meh.active         { border-color: var(--meh); background: var(--meh-bg); }
+  .fstat.fs-meh.active .fstat-count  { color: var(--meh); }
+  .fstat.fs-pass.active        { border-color: var(--pass); background: var(--pass-bg); }
+  .fstat.fs-pass.active .fstat-count { color: var(--pass); }
+
+  /* ── Product sub-tabs ───────────────────────────────────── */
+  .product-subtabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 22px;
+    border-bottom: 2px solid var(--border);
+  }
+  .product-subtab {
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 500;
+    padding: 8px 18px;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: color .15s, border-color .15s;
+  }
+  .product-subtab:hover { color: var(--text); }
+  .product-subtab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+
+  /* ── Bookmark ───────────────────────────────────────────── */
+  .bookmark-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    color: var(--text-muted);
+    transition: color .15s;
+    font-size: 11.5px;
+    font-weight: 500;
+    font-family: inherit;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .bookmark-btn:hover { color: var(--primary); background: var(--primary-light); }
+  .bookmark-btn.active { color: var(--primary); }
+  .try-filter-bar {
+    display: none;
+    margin-bottom: 18px;
+  }
+  .try-filter-btn {
+    font-family: inherit;
+    font-size: 12.5px;
+    padding: 6px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 100px;
+    background: var(--surface);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .try-filter-btn.active {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    color: var(--primary);
+    font-weight: 600;
+  }
+
+  /* ── Auto-fill ──────────────────────────────────────────── */
+  .input-with-btn { display: flex; gap: 8px; }
+  .input-with-btn .form-input { flex: 1; min-width: 0; }
+  .autofill-btn {
+    font-family: inherit;
+    font-size: 13px;
+    padding: 7px 14px;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: background .15s;
+  }
+  .autofill-btn:hover { background: var(--primary-hover); }
+  .autofill-btn:disabled { opacity: .55; cursor: not-allowed; }
+  .image-preview {
+    display: none;
+    margin-top: 8px;
+    height: 64px;
+    width: auto;
+    max-width: 100%;
+    border-radius: var(--radius-sm);
+    object-fit: contain;
+    border: 1.5px solid var(--border);
+  }
+
+  .sort-select {
+    font-family: inherit;
+    font-size: 13px;
+    padding: 7px 30px 7px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%23888' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    transition: border-color .15s, background-color .2s;
+  }
+  .sort-select:focus { border-color: var(--primary); }
+
+  /* ── Funnel / category filter ───────────────────────────── */
+  .funnel-wrap { position: relative; }
+  .funnel-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: inherit;
+    font-size: 13px;
+    padding: 7px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    transition: border-color .15s, background .2s;
+    white-space: nowrap;
+  }
+  .funnel-btn:hover, .funnel-btn.active { border-color: var(--primary); color: var(--primary); }
+  .funnel-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-md);
+    z-index: 200;
+    min-width: 180px;
+    padding: 5px;
+  }
+  .funnel-menu.open { display: block; }
+  .funnel-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+    font-size: 13px;
+    padding: 7px 12px;
+    border: none;
+    border-radius: 6px;
+    background: none;
+    color: var(--text);
+    cursor: pointer;
+    transition: background .12s;
+  }
+  .funnel-item:hover { background: var(--surface-2); }
+  .funnel-item.active { background: var(--primary-light); color: var(--primary); font-weight: 600; }
+
+  /* ── Product grid ───────────────────────────────────────── */
+  .product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+    gap: 18px;
+  }
+
+  /* ── Product card ───────────────────────────────────────── */
+  .product-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: none;
+    box-shadow: var(--shadow);
+    transition: transform .15s, box-shadow .15s, background .2s, border-color .2s;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .product-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+
+  /* accent strip */
+  .product-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    z-index: 2;
+  }
+  .product-card.verdict-love::before { background: var(--love); }
+  .product-card.verdict-pass::before { background: var(--pass); }
+  .product-card.verdict-meh::before  { background: var(--meh);  }
+
+  /* card body (padding wrapper) */
+  .card-body { padding: 16px 20px 14px; display: flex; flex-direction: column; flex: 1; }
+
+  .verdict-badge {
+    padding: 3px 10px;
+    border-radius: 100px;
+    font-size: 10px;
+    font-weight: 700;
+    white-space: nowrap;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+  .vb-love { background: var(--love-bg); color: var(--love); }
+  .vb-meh  { background: var(--meh-bg);  color: var(--meh);  }
+  .vb-pass { background: var(--pass-bg); color: var(--pass); }
+
+  /* product header: thumbnail left, [category + name + brand] right */
+  .product-header {
+    display: flex;
+    gap: 12px;
+    align-items: stretch;
+    margin-bottom: 13px;
+  }
+  .product-thumb {
+    height: 64px;
+    width: auto;
+    max-width: 80px;
+    flex-shrink: 0;
+    border-radius: 8px;
+    object-fit: contain;
+    align-self: flex-start;
+    display: block;
+    transition: opacity .2s;
+  }
+  .product-card:hover .product-thumb { opacity: .9; }
+  .product-header-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .category-badge {
+    padding: 3px 10px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .03em;
+    white-space: nowrap;
+    align-self: flex-start;
+  }
+  .product-name  { font-size: 15.5px; font-weight: 700; letter-spacing: -.02em; line-height: 1.25; }
+  .product-brand { font-size: 12px; color: var(--text-muted); }
+  .product-recommender { font-size: 11.5px; color: var(--text-muted); margin-top: 5px; }
+
+  .pros-cons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+  .pros, .cons { font-size: 12.5px; padding: 9px 11px; border-radius: var(--radius-sm); line-height: 1.55; }
+  .pros { background: var(--love-bg); color: var(--love-text); }
+  .cons { background: var(--pass-bg); color: var(--pass-text); }
+  .pros-label, .cons-label { font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+
+  /* collapsible text */
+  .ct-text { display: block; }
+  .ct-text.clamped {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .ct-btn {
+    background: none;
+    border: none;
+    padding: 3px 0 0;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    display: block;
+  }
+  .pros .ct-btn { color: var(--love); }
+  .cons .ct-btn { color: var(--pass); }
+
+  .card-footer {
+    display: flex;
+    align-items: center;
+    padding-top: 11px;
+    border-top: 1px solid var(--border);
+    gap: 8px;
+    flex-wrap: nowrap;
+    margin-top: auto;
+  }
+  .product-name a { color: inherit; text-decoration: none; }
+  .product-name a:hover { text-decoration: underline; }
+  .cat-date-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .card-date { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+  .card-meta { display: flex; align-items: center; gap: 6px; }
+  .card-link { font-size: 11.5px; color: var(--primary); text-decoration: none; font-weight: 500; }
+  .card-link:hover { text-decoration: underline; }
+
+  .card-actions { display: flex; gap: 2px; margin-left: auto; }
+  .card-btn {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 14px;
+    transition: background .15s, color .15s;
+    font-family: inherit;
+  }
+  .card-btn:hover { background: var(--surface-2); color: var(--text); }
+
+  /* ── Empty state ────────────────────────────────────────── */
+  .empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 80px 24px;
+    color: var(--text-muted);
+  }
+  .empty-icon { font-size: 52px; margin-bottom: 16px; }
+  .empty-state h3 { font-size: 17px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+  .empty-state p { font-size: 14px; max-width: 320px; margin: 0 auto 24px; line-height: 1.65; }
+
+  /* ── Modal ──────────────────────────────────────────────── */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10,8,6,.65);
+    z-index: 200;
+    display: none;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 32px 16px 48px;
+    overflow-y: auto;
+    backdrop-filter: blur(3px);
+  }
+  .overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 540px;
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    margin: auto 0;
+    transition: background .2s;
+  }
+  .modal-head {
+    padding: 22px 24px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .modal-title { font-size: 19px; font-weight: 700; letter-spacing: -.02em; }
+  .modal-close {
+    width: 30px; height: 30px;
+    border-radius: 7px;
+    border: none;
+    background: var(--surface-2);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 16px;
+    transition: background .15s;
+    font-family: inherit;
+  }
+  .modal-close:hover { background: var(--border); color: var(--text); }
+  .modal-body { padding: 20px 24px 2px; }
+  .modal-foot {
+    padding: 14px 24px;
+    background: var(--surface-2);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    transition: background .2s;
+  }
+
+  /* ── Form ───────────────────────────────────────────────── */
+  .form-section { margin-bottom: 18px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-label { font-size: 12.5px; font-weight: 600; color: var(--text); }
+  .req { color: var(--pass); margin-left: 2px; }
+  .opt { font-weight: 400; color: var(--text-muted); font-size: 11.5px; margin-left: 4px; }
+
+  .form-input, .form-select, .form-textarea {
+    font-family: inherit;
+    font-size: 13.5px;
+    padding: 9px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+    transition: border-color .15s, background .2s, color .2s;
+    width: 100%;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--primary); }
+  .form-textarea { resize: vertical; min-height: 72px; line-height: 1.55; }
+
+  /* verdict picker */
+  .verdict-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .verdict-opt { position: relative; }
+  .verdict-opt input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .verdict-opt label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    padding: 12px 8px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    transition: all .15s;
+    text-align: center;
+  }
+  .verdict-opt label .em { font-size: 24px; }
+  .verdict-opt.love input:checked + label { border-color: var(--love); background: var(--love-bg); color: var(--love); }
+  .verdict-opt.meh  input:checked + label { border-color: var(--meh);  background: var(--meh-bg);  color: var(--meh);  }
+  .verdict-opt.pass input:checked + label { border-color: var(--pass); background: var(--pass-bg); color: var(--pass); }
+  .verdict-opt label:hover { border-color: var(--text-muted); }
+
+  /* ── Cons quick-tags ────────────────────────────────────── */
+  .quick-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .qtag {
+    padding: 4px 10px;
+    border-radius: 100px;
+    font-size: 11.5px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    color: var(--text-muted);
+    font-family: inherit;
+    transition: all .15s;
+    user-select: none;
+  }
+  .qtag:hover { border-color: var(--pass); color: var(--pass); background: var(--pass-bg); }
+  .qtag.selected { border-color: var(--pass); color: var(--pass); background: var(--pass-bg); }
+
+  /* buttons */
+  .btn-cancel {
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 500;
+    padding: 9px 16px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .btn-cancel:hover { border-color: var(--text-muted); color: var(--text); }
+  .btn-save {
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 600;
+    padding: 9px 20px;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .btn-save:hover { background: var(--primary-hover); }
+
+  /* ── Dark mode toggle ───────────────────────────────────── */
+  .theme-toggle {
+    position: fixed;
+    bottom: 22px;
+    right: 22px;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    box-shadow: var(--shadow-md);
+    cursor: pointer;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .2s, border-color .2s, transform .15s, box-shadow .15s;
+    z-index: 150;
+    font-family: inherit;
+    color: var(--text);
+  }
+  .theme-toggle:hover { transform: scale(1.1); box-shadow: var(--shadow-lg); }
+
+  /* ── Placeholder pages ──────────────────────────────────── */
+  .placeholder { text-align: center; padding: 100px 24px; max-width: 480px; margin: 0 auto; }
+  .placeholder .ph-icon { font-size: 56px; margin-bottom: 20px; }
+  .placeholder h2 { font-size: 22px; font-weight: 700; letter-spacing: -.02em; margin-bottom: 10px; }
+  .placeholder p { font-size: 14.5px; color: var(--text-muted); line-height: 1.7; }
+  .coming-pill {
+    display: inline-block;
+    margin-top: 18px;
+    padding: 5px 14px;
+    background: var(--gold-bg);
+    border: 1.5px solid var(--gold);
+    color: var(--gold);
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+  }
+
+  /* ── Category badge colours ─────────────────────────────── */
+  .cat-feeding   { background: #FEF3C7; color: #92400E; }
+  .cat-sleep     { background: #EDE9FE; color: #5B21B6; }
+  .cat-diapering { background: #D1FAE5; color: #065F46; }
+  .cat-clothing  { background: #FCE7F3; color: #9D174D; }
+  .cat-gear      { background: #DBEAFE; color: #1E40AF; }
+  .cat-toys      { background: #FEF9C3; color: #854D0E; }
+  .cat-bathing   { background: #CCFBF1; color: #0F766E; }
+  .cat-health    { background: #FEE2E2; color: #991B1B; }
+  .cat-nursery   { background: #F3E8FF; color: #7E22CE; }
+  .cat-other     { background: #F3F4F6; color: #374151; }
+
+  [data-theme="dark"] .cat-feeding   { background: #1E2A14; color: #A8D878; }
+  [data-theme="dark"] .cat-sleep     { background: #0E1E38; color: #90B8F0; }
+  [data-theme="dark"] .cat-diapering { background: #0E2830; color: #60C8D8; }
+  [data-theme="dark"] .cat-clothing  { background: #2A1A0E; color: #E8B080; }
+  [data-theme="dark"] .cat-gear      { background: #0A1A3D; color: #7AB3FF; }
+  [data-theme="dark"] .cat-toys      { background: #28200A; color: #F0D060; }
+  [data-theme="dark"] .cat-bathing   { background: #0A2030; color: #60C0D8; }
+  [data-theme="dark"] .cat-health    { background: #2A1010; color: #F09090; }
+  [data-theme="dark"] .cat-nursery   { background: #101A30; color: #90A8E0; }
+  [data-theme="dark"] .cat-other     { background: #1A2030; color: #90A0B8; }
+
+  /* ── Responsive ─────────────────────────────────────────── */
+  @media (max-width: 640px) {
+    .app-header { padding: 0 16px; }
+    .header-inner { gap: 14px; }
+    .brand-tagline { display: none; }
+    .page { padding: 22px 16px; }
+    .form-row { grid-template-columns: 1fr; }
+    .product-grid { grid-template-columns: 1fr; }
+    .stats-bar .stat-card { min-width: 100px; }
+    .pros-cons { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ App Header ══════════════════════════════════════════════════════ -->
+<header class="app-header">
+  <div class="header-inner">
+    <div class="brand">
+      <span class="brand-name"><span class="brand-icon">🍦</span> sillycone</span>
+      <span class="brand-tagline">Your baby hall of fame</span>
+    </div>
+    <nav class="main-tabs">
+      <button class="main-tab active" data-tab="products">Products</button>
+      <button class="main-tab" data-tab="services">Services</button>
+      <button class="main-tab" data-tab="experiences">Experiences</button>
+    </nav>
+  </div>
+</header>
+
+<!-- ══ Products page ══════════════════════════════════════════════════ -->
+<div id="tab-products" class="page active">
+  <div class="page-header">
+    <div class="page-title-group">
+      <h1>Products</h1>
+      <p>Your honest, unfiltered takes on everything you've tried</p>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-shrink:0;">
+      <select class="sort-select" id="sort-select" onchange="setSort(this.value)">
+        <option value="newest">Newest first</option>
+        <option value="oldest">Oldest first</option>
+      </select>
+      <div class="funnel-wrap">
+        <button class="funnel-btn" id="funnel-btn" onclick="toggleFunnelMenu()">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M1 2.5h12L8.5 7v4.5l-3-1.5V7L1 2.5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+          </svg>
+          <span id="funnel-label">Category</span>
+        </button>
+        <div class="funnel-menu" id="funnel-menu">
+          <button class="funnel-item active" onclick="setCategoryFilter('all')">All categories</button>
+          <button class="funnel-item" onclick="setCategoryFilter('feeding')">🍼 Feeding & Teething</button>
+          <button class="funnel-item" onclick="setCategoryFilter('sleep')">😴 Sleep & Soothing</button>
+          <button class="funnel-item" onclick="setCategoryFilter('diapering')">🧷 Diapering</button>
+          <button class="funnel-item" onclick="setCategoryFilter('clothing')">👕 Clothing</button>
+          <button class="funnel-item" onclick="setCategoryFilter('gear')">🚗 Gear &amp; Transport</button>
+          <button class="funnel-item" onclick="setCategoryFilter('toys')">🧸 Toys &amp; Play</button>
+          <button class="funnel-item" onclick="setCategoryFilter('bathing')">🛁 Bathing &amp; Grooming</button>
+          <button class="funnel-item" onclick="setCategoryFilter('health')">❤️‍🩹 Health &amp; Safety</button>
+          <button class="funnel-item" onclick="setCategoryFilter('nursery')">🌙 Nursery</button>
+          <button class="funnel-item" onclick="setCategoryFilter('other')">📦 Other</button>
+        </div>
+      </div>
+      <button class="btn-add" id="btn-add-product" onclick="openModal()">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+          <path d="M7.5 2v11M2 7.5h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <span id="btn-add-label">Add Product</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="product-subtabs">
+    <button class="product-subtab active" id="subtab-mine" onclick="setProductTab('mine')">Tried by me</button>
+    <button class="product-subtab" id="subtab-others" onclick="setProductTab('others')">Discover</button>
+  </div>
+
+  <div class="try-filter-bar" id="try-filter-bar">
+    <button class="try-filter-btn" id="try-filter-btn" onclick="toggleBookmarkedFilter()">🔖 To try only</button>
+  </div>
+
+  <div class="filter-stats" id="filter-stats"></div>
+
+  <div class="product-grid" id="product-grid"></div>
+</div>
+
+<!-- ══ Services page ══════════════════════════════════════════════════ -->
+<div id="tab-services" class="page">
+  <div class="page-header">
+    <div class="page-title-group">
+      <h1>Services</h1>
+      <p>Apps, professionals, and everything in between</p>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-shrink:0;">
+      <button class="btn-add" onclick="openServiceModal()">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+          <path d="M7.5 2v11M2 7.5h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        Add Service
+      </button>
+    </div>
+  </div>
+  <div class="product-grid" id="service-grid"></div>
+</div>
+
+<!-- ══ Experiences page ═══════════════════════════════════════════════ -->
+<div id="tab-experiences" class="page">
+  <div class="page-header">
+    <div class="page-title-group">
+      <h1>Experiences</h1>
+      <p>Classes, concerts, swim sessions — everything you've done or want to do</p>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-shrink:0;">
+      <button class="btn-add" id="btn-add-exp" onclick="openExpModal()">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+          <path d="M7.5 2v11M2 7.5h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <span id="btn-add-exp-label">Add Experience</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="product-subtabs">
+    <button class="product-subtab active" id="exp-subtab-tried" onclick="setExpTab('tried')">Tried</button>
+    <button class="product-subtab" id="exp-subtab-totry" onclick="setExpTab('totry')">To try</button>
+  </div>
+
+  <div class="product-grid" id="exp-grid"></div>
+</div>
+
+<!-- ══ Add / Edit Modal ════════════════════════════════════════════════ -->
+<div class="overlay" id="overlay" onclick="onOverlayClick(event)">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 class="modal-title" id="modal-title">Add a Product</h2>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+
+    <div class="modal-body">
+
+      <!-- Link + auto-fill -->
+      <div class="form-section">
+        <div class="form-group">
+          <label class="form-label">Link<span class="opt">(optional)</span></label>
+          <div class="input-with-btn">
+            <input class="form-input" id="f-link" type="url" placeholder="https://… paste a product link">
+            <button type="button" class="autofill-btn" id="autofill-btn" onclick="autofill()">Auto-fill</button>
+          </div>
+          <div id="autofill-status" style="display:none;margin-top:6px;font-size:12px;"></div>
+        </div>
+      </div>
+
+      <!-- Name + Brand -->
+      <div class="form-section">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Product name<span class="req">*</span></label>
+            <input class="form-input" id="f-name" type="text" placeholder="e.g. Owlet Dream Sock">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Brand<span class="req">*</span></label>
+            <input class="form-input" id="f-brand" type="text" placeholder="e.g. Owlet">
+            <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:.85rem;color:var(--text-muted);cursor:pointer;">
+              <input type="checkbox" id="f-generic-brand" onchange="document.getElementById('f-brand').style.display = this.checked ? 'none' : ''"> Generic brand
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Image -->
+      <div class="form-section">
+        <div class="form-group">
+          <label class="form-label">Product image<span class="opt">(optional)</span></label>
+          <input class="form-input" id="f-image" type="url" placeholder="https://… or auto-filled from link" oninput="updateImagePreview()">
+          <img id="f-image-preview" class="image-preview" src="" alt="Preview" onerror="this.style.display='none'">
+        </div>
+      </div>
+
+      <!-- Recommended by (Discover tab only) -->
+      <div class="form-section" id="f-section-recommended-by">
+        <div class="form-group">
+          <label class="form-label">Recommended by<span class="opt">(optional)</span></label>
+          <input class="form-input" id="f-recommended-by" type="text" list="recommenders-list" placeholder="e.g. Sarah — leave blank if you found it yourself" autocomplete="off">
+          <datalist id="recommenders-list"></datalist>
+        </div>
+      </div>
+
+      <!-- Notes (Discover only) -->
+      <div class="form-section" id="f-section-notes">
+        <div class="form-group">
+          <label class="form-label">Notes<span class="opt">(optional)</span></label>
+          <textarea class="form-textarea" id="f-notes" placeholder="Why you want to try it, who mentioned it, anything useful…"></textarea>
+        </div>
+      </div>
+
+      <!-- Category -->
+      <div class="form-section">
+        <div class="form-group">
+          <label class="form-label">Category<span class="req">*</span></label>
+          <select class="form-select" id="f-category">
+            <option value="">Select a category…</option>
+            <option value="feeding">🍼 Feeding & Teething</option>
+            <option value="sleep">😴 Sleep & Soothing</option>
+            <option value="diapering">🧷 Diapering</option>
+            <option value="clothing">👕 Clothing</option>
+            <option value="gear">🚗 Gear &amp; Transport</option>
+            <option value="toys">🧸 Toys &amp; Play</option>
+            <option value="bathing">🛁 Bathing &amp; Grooming</option>
+            <option value="health">❤️‍🩹 Health &amp; Safety</option>
+            <option value="nursery">🌙 Nursery</option>
+            <option value="other">📦 Other</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Verdict -->
+      <div class="form-section" id="f-section-verdict">
+        <label class="form-label" style="display:block;margin-bottom:9px;">Your verdict<span class="req">*</span></label>
+        <div class="verdict-grid">
+          <div class="verdict-opt love">
+            <input type="radio" name="verdict" id="v-love" value="love">
+            <label for="v-love"><span class="em">❤️</span>Highly Recommend</label>
+          </div>
+          <div class="verdict-opt meh">
+            <input type="radio" name="verdict" id="v-meh" value="meh">
+            <label for="v-meh"><span class="em">😐</span>It's okay</label>
+          </div>
+          <div class="verdict-opt pass">
+            <input type="radio" name="verdict" id="v-pass" value="pass">
+            <label for="v-pass"><span class="em">👎</span>Do Not Recommend</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pros -->
+      <div class="form-section" id="f-section-pros">
+        <div class="form-group">
+          <label class="form-label" style="color:var(--love);">✓ Pros<span class="opt">(optional)</span></label>
+          <textarea class="form-textarea" id="f-pros" placeholder="What it did well…"></textarea>
+        </div>
+      </div>
+
+      <!-- Cons + quick tags -->
+      <div class="form-section" id="f-section-cons">
+        <div class="form-group">
+          <label class="form-label" style="color:var(--pass);">✗ Cons<span class="opt">(optional)</span></label>
+          <div class="quick-tags" id="quick-tags"></div>
+          <textarea class="form-textarea" id="f-cons" placeholder="Where it fell short… or pick from above"></textarea>
+        </div>
+      </div>
+
+      <input type="hidden" id="f-id">
+    </div><!-- /modal-body -->
+
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="submitForm()">Save to shelf</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Services Modal ═════════════════════════════════════════════════ -->
+<div class="overlay" id="service-overlay" onclick="onServiceOverlayClick(event)">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 class="modal-title" id="service-modal-title">Add a Service</h2>
+      <button class="modal-close" onclick="closeServiceModal()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Name -->
+      <div class="form-section">
+        <div class="form-group">
+          <label class="form-label">Service name<span class="req">*</span></label>
+          <input class="form-input" id="sf-name" type="text" placeholder="e.g. Huckleberry, Dr. Smith">
+        </div>
+      </div>
+
+      <!-- Category -->
+      <div class="form-section">
+        <div class="form-group">
+          <label class="form-label">Category<span class="req">*</span></label>
+          <select class="form-select" id="sf-category">
+            <option value="">Select a category…</option>
+            <option value="apps">📱 Apps</option>
+            <option value="healthcare">🏥 Healthcare</option>
+            <option value="lactation">🤱 Lactation Support</option>
+            <option value="sleep">😴 Sleep & Soothing Consulting</option>
+            <option value="postpartum">💆 Postpartum Support</option>
+            <option value="classes">🎓 Classes &amp; Education</option>
+            <option value="other">📦 Other</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Verdict -->
+      <div class="form-section">
+        <label class="form-label" style="display:block;margin-bottom:9px;">Your verdict<span class="req">*</span></label>
+        <div class="verdict-grid">
+          <div class="verdict-opt love">
+            <input type="radio" name="svc-verdict" id="sv-love" value="love">
+            <label for="sv-love"><span class="em">❤️</span>Highly Recommend</label>
+          </div>
+          <div class="verdict-opt meh">
+            <input type="radio" name="svc-verdict" id="sv-meh" value="meh">
+            <label for="sv-meh"><span class="em">😐</span>It's okay</label>
+          </div>
+          <div class="verdict-opt pass">
+            <input type="radio" name="svc-verdict" id="sv-pass" value="pass">
+            <label for="sv-pass"><span class="em">👎</span>Do Not Recommend</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div class="form-section">
+        <div class="form-group">
+          <label class="form-label">Notes<span class="opt">(optional)</span></label>
+          <textarea class="form-textarea" id="sf-notes" placeholder="What made it great or not…"></textarea>
+        </div>
+      </div>
+
+      <!-- Link -->
+      <div class="form-section">
+        <div class="form-group">
+          <label class="form-label">Link<span class="opt">(optional)</span></label>
+          <input class="form-input" id="sf-link" type="url" placeholder="https://…">
+        </div>
+      </div>
+
+      <input type="hidden" id="sf-id">
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="closeServiceModal()">Cancel</button>
+      <button class="btn-save" onclick="submitServiceForm()">Save service</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Experiences Modal ══════════════════════════════════════════════ -->
+<div class="overlay" id="exp-overlay" onclick="onExpOverlayClick(event)">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 class="modal-title" id="exp-modal-title">Add an Experience</h2>
+      <button class="modal-close" onclick="closeExpModal()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Link -->
+      <div class="form-section">
+        <div class="form-group">
+          <label class="form-label">Link<span class="opt">(optional)</span></label>
+          <div class="input-with-btn">
+            <input class="form-input" id="ef-link" type="url" placeholder="https://…">
+            <button type="button" class="autofill-btn" id="exp-autofill-btn" onclick="expAutofill()">Auto-fill</button>
+          </div>
+          <div id="exp-autofill-status" style="display:none;margin-top:6px;font-size:12px;"></div>
+        </div>
+      </div>
+
+      <!-- Name -->
+      <div class="form-section">
+        <div class="form-group">
+          <label class="form-label">Experience name<span class="req">*</span></label>
+          <input class="form-input" id="ef-name" type="text" placeholder="e.g. Bach to Baby Half Term Concert">
+        </div>
+      </div>
+
+      <!-- Category -->
+      <div class="form-section">
+        <div class="form-group">
+          <label class="form-label">Category<span class="req">*</span></label>
+          <select class="form-select" id="ef-category">
+            <option value="">Select a category…</option>
+            <option value="music">🎵 Music</option>
+            <option value="swimming">🏊 Swimming</option>
+            <option value="sensory">🎨 Sensory &amp; Play</option>
+            <option value="classes">📚 Classes</option>
+            <option value="outdoor">🌳 Outdoor</option>
+            <option value="shows">🎪 Shows &amp; Events</option>
+            <option value="other">📦 Other</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Date -->
+      <div class="form-section">
+        <div class="form-group">
+          <label class="form-label" id="ef-date-label">Date<span class="opt">(optional)</span></label>
+          <input class="form-input" id="ef-date" type="date">
+        </div>
+      </div>
+
+      <!-- Verdict (tried tab only) -->
+      <div class="form-section" id="ef-section-verdict">
+        <label class="form-label" style="display:block;margin-bottom:9px;">Your verdict<span class="req">*</span></label>
+        <div class="verdict-grid">
+          <div class="verdict-opt love">
+            <input type="radio" name="exp-verdict" id="ev-love" value="love">
+            <label for="ev-love"><span class="em">❤️</span>Highly Recommend</label>
+          </div>
+          <div class="verdict-opt meh">
+            <input type="radio" name="exp-verdict" id="ev-meh" value="meh">
+            <label for="ev-meh"><span class="em">😐</span>It's okay</label>
+          </div>
+          <div class="verdict-opt pass">
+            <input type="radio" name="exp-verdict" id="ev-pass" value="pass">
+            <label for="ev-pass"><span class="em">👎</span>Do Not Recommend</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div class="form-section">
+        <div class="form-group">
+          <label class="form-label">Notes<span class="opt">(optional)</span></label>
+          <textarea class="form-textarea" id="ef-notes" placeholder="What was it like, who it's good for, anything worth remembering…"></textarea>
+        </div>
+      </div>
+
+      <input type="hidden" id="ef-id">
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="closeExpModal()">Cancel</button>
+      <button class="btn-save" onclick="submitExpForm()">Save experience</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Dark mode toggle ════════════════════════════════════════════════ -->
+<button class="theme-toggle" id="theme-toggle" title="Toggle dark mode" onclick="toggleTheme()">🌙</button>
+
+<!-- ══ Script ═════════════════════════════════════════════════════════ -->
+<script>
+// ── Worker URL ───────────────────────────────────────────────────────
+// After deploying worker.js to Cloudflare, paste your worker URL here:
+const WORKER_URL = 'https://url-parser.mahamfkhan.workers.dev';
+
+// ── State ────────────────────────────────────────────────────────────
+let products  = JSON.parse(localStorage.getItem('shelf_products') || '[]');
+let services  = JSON.parse(localStorage.getItem('shelf_services') || '[]');
+
+// Migrate existing products to add source + bookmarked fields
+(function migrate() {
+  let dirty = false;
+  products.forEach(p => {
+    if (!p.source) { p.source = p.recommendedBy ? 'others' : 'mine'; dirty = true; }
+    if (p.bookmarked === undefined) { p.bookmarked = false; dirty = true; }
+  });
+  if (dirty) localStorage.setItem('shelf_products', JSON.stringify(products));
+})();
+
+let filter         = 'all';
+let categoryFilter = 'all';
+let sortBy         = 'newest';
+let editingId = null;
+let productTab         = 'mine';   // 'mine' | 'others'
+let showBookmarkedOnly = false;
+
+// ── Cons quick-tags ──────────────────────────────────────────────────
+const CONS_TAGS = [
+  'Steep price tag',
+  'Broke quickly',
+  'Hard to clean',
+  'Bulky / hard to store',
+  'Tricky to assemble',
+  'Leaks',
+  'Too loud',
+  'Smaller than expected',
+  'Larger than expected',
+  'Short lifespan',
+  'Hard to use one-handed',
+  'Fiddly straps / buckles',
+  'Poor quality materials',
+  'Uncomfortable',
+  'Not as described',
+];
+
+let selectedTags = new Set();
+
+function buildQuickTags() {
+  const container = document.getElementById('quick-tags');
+  container.innerHTML = CONS_TAGS.map(tag => `
+    <button type="button" class="qtag" data-tag="${tag}" onclick="toggleTag(this, '${tag.replace(/'/g,"\\'")}')">
+      ${tag}
+    </button>`).join('');
+}
+
+function toggleTag(el, tag) {
+  if (selectedTags.has(tag)) {
+    selectedTags.delete(tag);
+    el.classList.remove('selected');
+  } else {
+    selectedTags.add(tag);
+    el.classList.add('selected');
+  }
+  syncTagsToTextarea();
+}
+
+function syncTagsToTextarea() {
+  const ta = document.getElementById('f-cons');
+  // Collect lines that are NOT from tags (free text typed by user)
+  const existingLines = ta.value.split('\n').filter(l => !CONS_TAGS.includes(l.trim()) && l.trim() !== '');
+  const tagLines = [...selectedTags];
+  const all = [...tagLines, ...existingLines];
+  ta.value = all.join('\n');
+}
+
+function resetTags() {
+  selectedTags = new Set();
+  document.querySelectorAll('.qtag').forEach(el => el.classList.remove('selected'));
+}
+
+function restoreTagsFromText(text) {
+  resetTags();
+  if (!text) return;
+  const lines = text.split('\n').map(l => l.trim());
+  lines.forEach(line => {
+    if (CONS_TAGS.includes(line)) {
+      selectedTags.add(line);
+      const el = document.querySelector(`.qtag[data-tag="${line}"]`);
+      if (el) el.classList.add('selected');
+    }
+  });
+}
+
+// ── Category config ──────────────────────────────────────────────────
+const CATS = {
+  feeding:   { label: 'Feeding & Teething', cls: 'cat-feeding',   em: '🍼' },
+  sleep:     { label: 'Sleep & Soothing', cls: 'cat-sleep',     em: '😴' },
+  diapering: { label: 'Diapering',        cls: 'cat-diapering', em: '🧷' },
+  clothing:  { label: 'Clothing',         cls: 'cat-clothing',  em: '👕' },
+  gear:      { label: 'Gear & Transport', cls: 'cat-gear',      em: '🚗' },
+  toys:      { label: 'Toys & Play',      cls: 'cat-toys',      em: '🧸' },
+  bathing:   { label: 'Bathing & Grooming', cls: 'cat-bathing',  em: '🛁' },
+  health:    { label: 'Health & Safety',  cls: 'cat-health',    em: '❤️‍🩹' },
+  nursery:   { label: 'Nursery',          cls: 'cat-nursery',   em: '🌙' },
+  other:     { label: 'Other',            cls: 'cat-other',     em: '📦' },
+};
+
+// ── Persistence ──────────────────────────────────────────────────────
+function persist() {
+  localStorage.setItem('shelf_products', JSON.stringify(products));
+}
+
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+// ── Dark mode ────────────────────────────────────────────────────────
+function toggleTheme() {
+  const isDark = document.documentElement.dataset.theme === 'dark';
+  const next = isDark ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  document.getElementById('theme-toggle').textContent = next === 'dark' ? '☀️' : '🌙';
+  localStorage.setItem('shelf_theme', next);
+}
+
+function initTheme() {
+  const saved = localStorage.getItem('shelf_theme') || 'light';
+  document.documentElement.dataset.theme = saved;
+  document.getElementById('theme-toggle').textContent = saved === 'dark' ? '☀️' : '🌙';
+}
+
+// ── Tab switching ────────────────────────────────────────────────────
+document.querySelectorAll('.main-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ── Filter & sort ────────────────────────────────────────────────────
+function setFilter(f) {
+  filter = f;
+  render();
+}
+
+function setSort(s) {
+  sortBy = s;
+  render();
+}
+
+function setCategoryFilter(cat) {
+  categoryFilter = cat;
+  // update active state in menu
+  document.querySelectorAll('.funnel-item').forEach(el => el.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  // update button label
+  const label = cat === 'all' ? 'Category' : event.currentTarget.textContent.trim();
+  document.getElementById('funnel-label').textContent = label;
+  document.getElementById('funnel-btn').classList.toggle('active', cat !== 'all');
+  closeFunnelMenu();
+  render();
+}
+
+function toggleFunnelMenu() {
+  document.getElementById('funnel-menu').classList.toggle('open');
+}
+
+function closeFunnelMenu() {
+  document.getElementById('funnel-menu').classList.remove('open');
+}
+
+document.addEventListener('click', e => {
+  if (!document.getElementById('funnel-btn')?.contains(e.target) &&
+      !document.getElementById('funnel-menu')?.contains(e.target)) {
+    closeFunnelMenu();
+  }
+});
+
+// ── Product sub-tabs ──────────────────────────────────────────────────
+function setProductTab(tab) {
+  productTab = tab;
+  showBookmarkedOnly = false;
+  document.getElementById('subtab-mine').classList.toggle('active', tab === 'mine');
+  document.getElementById('subtab-others').classList.toggle('active', tab === 'others');
+  document.getElementById('try-filter-bar').style.display = tab === 'others' ? 'block' : 'none';
+  document.getElementById('try-filter-btn').classList.remove('active');
+  document.getElementById('btn-add-label').textContent = tab === 'mine' ? 'Add Product' : 'Add to Discover';
+  render();
+}
+
+function toggleBookmarkedFilter() {
+  showBookmarkedOnly = !showBookmarkedOnly;
+  document.getElementById('try-filter-btn').classList.toggle('active', showBookmarkedOnly);
+  render();
+}
+
+function toggleBookmark(id) {
+  const p = products.find(x => x.id === id);
+  if (p) { p.bookmarked = !p.bookmarked; persist(); render(); }
+}
+
+function filtered() {
+  let list = products.filter(p => (p.source || 'mine') === productTab);
+
+  if (productTab === 'mine') {
+    if      (filter === 'fame') list = list.filter(p => p.verdict === 'love');
+    else if (filter === 'meh')  list = list.filter(p => p.verdict === 'meh');
+    else if (filter === 'pass') list = list.filter(p => p.verdict === 'pass');
+  }
+
+  if (productTab === 'others' && showBookmarkedOnly) {
+    list = list.filter(p => p.bookmarked);
+  }
+
+  if (categoryFilter !== 'all') list = list.filter(p => p.category === categoryFilter);
+
+  list.sort((a, b) => {
+    if (sortBy === 'newest') return b.createdAt - a.createdAt;
+    if (sortBy === 'oldest') return a.createdAt - b.createdAt;
+    return 0;
+  });
+  return list;
+}
+
+// ── Filter-stat cards ────────────────────────────────────────────────
+function renderFilterStats() {
+  const total = products.length;
+  const love  = products.filter(p => p.verdict === 'love').length;
+  const okay  = products.filter(p => p.verdict === 'meh').length;
+  const pass  = products.filter(p => p.verdict === 'pass').length;
+
+  const items = [
+    { f: 'all',  icon: '📦', count: total, label: 'On the shelf',      cls: ''       },
+    { f: 'fame', icon: '❤️', count: love,  label: 'Highly Recommend',  cls: 'fs-love' },
+    { f: 'meh',  icon: '😐', count: okay,  label: "It's Okay",         cls: 'fs-meh'  },
+    { f: 'pass', icon: '👎', count: pass,  label: 'Do Not Recommend',  cls: 'fs-pass' },
+  ];
+
+  document.getElementById('filter-stats').innerHTML = items.map(s => `
+    <button class="fstat ${s.cls}${filter === s.f ? ' active' : ''}" onclick="setFilter('${s.f}')">
+      <span class="fstat-icon">${s.icon}</span>
+      <div>
+        <div class="fstat-count">${s.count}</div>
+        <div class="fstat-label">${s.label}</div>
+      </div>
+    </button>`).join('');
+}
+
+// ── Render ───────────────────────────────────────────────────────────
+function render() {
+  const isMinetab = productTab === 'mine';
+  document.getElementById('filter-stats').style.display = isMinetab ? '' : 'none';
+  if (isMinetab) renderFilterStats();
+  const list = filtered();
+  const grid = document.getElementById('product-grid');
+
+  if (list.length === 0) {
+    grid.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">${filter === 'all' ? '🍦' : '🔍'}</div>
+      <h3>${filter === 'all' ? 'Your shelf is empty' : 'Nothing here yet'}</h3>
+      <p>${filter === 'all'
+        ? 'Start building your baby product hall of fame. Add something you loved — or something you want to warn other parents about.'
+        : 'No products match this filter. Try a different view or add more products.'}</p>
+      ${filter === 'all' ? `<button class="btn-add" onclick="openModal()" style="margin:0 auto;">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+          <path d="M7.5 2v11M2 7.5h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Add your first product</button>` : ''}
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = list.map(cardHTML).join('');
+}
+
+const CLAMP_CHARS = 140; // show "more" if text exceeds this
+
+function clampBlock(text, pid, field, colorClass) {
+  if (!text) return '';
+  const needsClamp = text.length > CLAMP_CHARS;
+  const ctId = `ct-${pid}-${field}`;
+  return `
+    <span id="${ctId}" class="ct-text${needsClamp ? ' clamped' : ''}">${esc(text)}</span>
+    ${needsClamp ? `<button class="ct-btn" onclick="toggleCt('${ctId}',this)">more ↓</button>` : ''}`;
+}
+
+function toggleCt(id, btn) {
+  const el = document.getElementById(id);
+  const nowClamped = el.classList.toggle('clamped');
+  btn.textContent = nowClamped ? 'more ↓' : 'less ↑';
+}
+
+function cardHTML(p) {
+  const cat    = CATS[p.category] || CATS.other;
+  const isOthers = p.source === 'others';
+
+  if (isOthers) {
+    const bookmarkSVG = p.bookmarked
+      ? `<svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M3 2h8a1 1 0 0 1 1 1v9l-4-2.5L4 12V3a1 1 0 0 1 1-1H3z"/></svg>`
+      : `<svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 2h8a1 1 0 0 1 1 1v9l-4-2.5L4 12V3a1 1 0 0 1 1-1H3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
+    const thumb = p.image
+      ? `<img class="product-thumb" src="${esc(p.image)}" alt="${esc(p.name)}" onerror="this.style.display='none'">`
+      : '';
+    return `
+  <div class="product-card verdict-meh">
+    <div class="card-body">
+      <div class="product-header">
+        ${thumb}
+        <div class="product-header-text">
+          <div class="cat-date-row">
+            <span class="category-badge ${cat.cls}">${cat.em} ${cat.label}</span>
+            <span class="card-date">${fmtDate(p.createdAt)}</span>
+          </div>
+          <div class="product-name">${p.link ? `<a href="${esc(p.link)}" target="_blank" rel="noopener">${esc(p.name)}</a>` : esc(p.name)}</div>
+          ${p.genericBrand ? '' : p.brand ? `<div class="product-brand">by ${esc(p.brand)}</div>` : ''}
+          ${p.recommendedBy ? `<div class="product-recommender">💌 from ${esc(p.recommendedBy)}</div>` : ''}
+        </div>
+      </div>
+      ${p.notes ? `<div style="font-size:12.5px;color:var(--text-muted);padding:0 16px 12px;line-height:1.55;">${esc(p.notes)}</div>` : ''}
+      <div class="card-footer">
+        <button class="bookmark-btn${p.bookmarked ? ' active' : ''}" title="${p.bookmarked ? 'Remove from to-try' : 'Add to to-try'}" onclick="toggleBookmark('${p.id}')">${bookmarkSVG} ${p.bookmarked ? 'To try' : 'Save to try'}</button>
+        <div class="card-actions" style="margin-left:auto;">
+          <button class="card-btn" title="Edit"   onclick="openModal('${p.id}')">✏️</button>
+          <button class="card-btn" title="Delete" onclick="deleteProduct('${p.id}')">🗑️</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+  }
+
+  // "mine" tab card — original layout
+  const isFame = p.verdict === 'love';
+  const vLabel = { love: '❤️ Highly Recommend', meh: "😐 It's Okay", pass: "👎 Do Not Recommend" }[p.verdict];
+
+  const prosHTML = p.pros ? `<div class="pros"><div class="pros-label">✓ Pros</div>${clampBlock(p.pros, p.id, 'pros', 'love')}</div>` : '';
+  const consHTML = p.cons
+    ? `<div class="cons"><div class="cons-label">✗ Cons</div>${clampBlock(p.cons, p.id, 'cons', 'pass')}</div>`
+    : p.pros ? `<div style="display:flex;align-items:center;gap:10px;padding:9px 11px;background:var(--surface-2);border-radius:var(--radius-sm);"><span style="font-size:28px;flex-shrink:0;">🚀</span><span style="font-size:11.5px;color:var(--text-muted);">Nothing negative to say here!</span></div>` : '';
+
+  const thumb = p.image
+    ? `<img class="product-thumb" src="${esc(p.image)}" alt="${esc(p.name)}" onerror="this.style.display='none'">`
+    : '';
+
+  return `
+  <div class="product-card verdict-${p.verdict}${isFame ? ' is-fame' : ''}">
+    <div class="card-body">
+      <div class="product-header">
+        ${thumb}
+        <div class="product-header-text">
+          <div class="cat-date-row">
+            <span class="category-badge ${cat.cls}">${cat.em} ${cat.label}</span>
+            <span class="card-date">${fmtDate(p.createdAt)}</span>
+          </div>
+          <div class="product-name">${p.link ? `<a href="${esc(p.link)}" target="_blank" rel="noopener">${esc(p.name)}</a>` : esc(p.name)}</div>
+          ${p.genericBrand ? '' : `<div class="product-brand">by ${esc(p.brand)}</div>`}
+          ${p.recommendedBy ? `<div class="product-recommender">💌 Recommended by ${esc(p.recommendedBy)}</div>` : ''}
+        </div>
+      </div>
+      ${(p.pros || p.cons) ? `<div class="pros-cons">${prosHTML}${consHTML}</div>` : ''}
+      <div class="card-footer">
+        <span class="verdict-badge vb-${p.verdict}">${vLabel}</span>
+        <div class="card-actions" style="margin-left:auto;">
+          <button class="card-btn" title="Edit"   onclick="openModal('${p.id}')">✏️</button>
+          <button class="card-btn" title="Delete" onclick="deleteProduct('${p.id}')">🗑️</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── Modal ────────────────────────────────────────────────────────────
+function openModal(id) {
+  editingId = id || null;
+  document.getElementById('modal-title').textContent = id ? 'Edit Product' : 'Add a Product';
+
+  clearForm();
+
+  if (id) {
+    const p = products.find(x => x.id === id);
+    if (p) {
+      document.getElementById('f-name').value     = p.name;
+      document.getElementById('f-brand').value    = p.brand;
+      document.getElementById('f-category').value = p.category;
+      document.getElementById('f-pros').value     = p.pros  || '';
+      document.getElementById('f-cons').value     = p.cons  || '';
+      document.getElementById('f-link').value     = p.link  || '';
+      document.getElementById('f-image').value       = p.image || '';
+      if (p.image) updateImagePreview();
+      document.getElementById('f-id').value          = p.id;
+      document.getElementById('f-generic-brand').checked = !!p.genericBrand;
+      document.getElementById('f-brand').style.display = p.genericBrand ? 'none' : '';
+      document.getElementById('f-recommended-by').value = p.recommendedBy || '';
+      document.getElementById('f-notes').value          = p.notes || '';
+
+      const vEl = document.getElementById('v-' + p.verdict);
+      if (vEl) vEl.checked = true;
+
+      restoreTagsFromText(p.cons || '');
+    }
+  }
+
+  // Populate recommenders datalist from saved products
+  const names = [...new Set(products.map(p => p.recommendedBy).filter(Boolean))];
+  const dl = document.getElementById('recommenders-list');
+  dl.innerHTML = names.map(n => `<option value="${n}">`).join('');
+
+  // Show/hide form sections based on source
+  const isOthers = (editingId ? (products.find(x => x.id === editingId)?.source || 'mine') : productTab) === 'others';
+  document.getElementById('f-section-verdict').style.display      = isOthers ? 'none' : '';
+  document.getElementById('f-section-pros').style.display         = isOthers ? 'none' : '';
+  document.getElementById('f-section-cons').style.display         = isOthers ? 'none' : '';
+  document.getElementById('f-section-recommended-by').style.display = isOthers ? '' : 'none';
+  document.getElementById('f-section-notes').style.display          = isOthers ? '' : 'none';
+  document.getElementById('modal-title').textContent = editingId
+    ? (isOthers ? 'Edit Discovery' : 'Edit Product')
+    : (isOthers ? 'Add to Discover' : 'Add a Product');
+
+  document.getElementById('overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => document.getElementById('f-name').focus(), 80);
+}
+
+function closeModal() {
+  document.getElementById('overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  editingId = null;
+}
+
+function onOverlayClick(e) {
+  if (e.target === document.getElementById('overlay')) closeModal();
+}
+
+function clearForm() {
+  ['f-name', 'f-brand', 'f-pros', 'f-cons', 'f-link', 'f-image', 'f-id', 'f-recommended-by', 'f-notes']
+    .forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-image-preview').style.display = 'none';
+  document.getElementById('autofill-status').style.display = 'none';
+  document.getElementById('f-category').value = '';
+  document.getElementById('f-generic-brand').checked = false;
+  document.getElementById('f-brand').style.display = '';
+  document.querySelectorAll('input[name="verdict"]').forEach(el => el.checked = false);
+  resetTags();
+}
+
+// ── Submit ───────────────────────────────────────────────────────────
+function submitForm() {
+  const name        = document.getElementById('f-name').value.trim();
+  const genericBrand = document.getElementById('f-generic-brand').checked;
+  const brand       = genericBrand ? '' : document.getElementById('f-brand').value.trim();
+  const category    = document.getElementById('f-category').value;
+  const verdict     = document.querySelector('input[name="verdict"]:checked')?.value;
+
+  const isOthers = editingId
+    ? (products.find(x => x.id === editingId)?.source || 'mine') === 'others'
+    : productTab === 'others';
+
+  const missing = [];
+  if (!name)              missing.push('product name');
+  if (!isOthers && !genericBrand && !brand) missing.push('brand');
+  if (!category)          missing.push('category');
+  if (!isOthers && !verdict) missing.push('verdict');
+
+  if (missing.length) {
+    alert('Please fill in: ' + missing.join(', ') + '.');
+    return;
+  }
+
+  const data = {
+    name,
+    brand:    isOthers ? '' : brand,
+    category, verdict: isOthers ? undefined : verdict,
+    genericBrand: isOthers ? false : genericBrand,
+    source:   isOthers ? 'others' : 'mine',
+    recommendedBy: isOthers ? document.getElementById('f-recommended-by').value.trim() : '',
+    notes: isOthers ? document.getElementById('f-notes').value.trim() : '',
+    pros:  isOthers ? '' : document.getElementById('f-pros').value.trim(),
+    cons:  isOthers ? '' : document.getElementById('f-cons').value.trim(),
+    link:  document.getElementById('f-link').value.trim(),
+    image: document.getElementById('f-image').value.trim(),
+  };
+
+  if (editingId) {
+    const idx = products.findIndex(p => p.id === editingId);
+    if (idx !== -1) products[idx] = { ...products[idx], ...data };
+  } else {
+    data.id        = uid();
+    data.createdAt = Date.now();
+    data.bookmarked = false;
+    products.unshift(data);
+  }
+
+  persist();
+  closeModal();
+  render();
+}
+
+// ── Delete ───────────────────────────────────────────────────────────
+function deleteProduct(id) {
+  if (!confirm('Remove this product from your shelf?')) return;
+  products = products.filter(p => p.id !== id);
+  persist();
+  render();
+}
+
+// ── Utils ────────────────────────────────────────────────────────────
+function esc(str) {
+  if (!str) return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/\n/g, '<br>');
+}
+
+function fmtDate(ts) {
+  return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+// ── Keyboard ─────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeModal(); closeServiceModal(); closeExpModal(); }
+});
+
+// ══ Services ══════════════════════════════════════════════════════════
+
+const SVC_CATS = {
+  apps:        { em: '📱', label: 'Apps',               cls: 'cat-gear'      },
+  healthcare:  { em: '🏥', label: 'Healthcare',         cls: 'cat-health'    },
+  lactation:   { em: '🤱', label: 'Lactation Support',  cls: 'cat-feeding'   },
+  sleep:       { em: '😴', label: 'Sleep Consulting',   cls: 'cat-sleep'     },
+  postpartum:  { em: '💆', label: 'Postpartum Support', cls: 'cat-nursery'   },
+  classes:     { em: '🎓', label: 'Classes',            cls: 'cat-toys'      },
+  other:       { em: '📦', label: 'Other',              cls: 'cat-other'     },
+};
+
+function persistServices() {
+  localStorage.setItem('shelf_services', JSON.stringify(services));
+}
+
+function renderServices() {
+  const grid = document.getElementById('service-grid');
+  if (!grid) return;
+  if (!services.length) {
+    grid.innerHTML = `
+      <div style="grid-column:1/-1;text-align:center;padding:80px 24px;">
+        <div style="font-size:48px;margin-bottom:16px;">🤝</div>
+        <h3 style="font-size:18px;font-weight:700;margin-bottom:8px;">No services yet</h3>
+        <p style="color:var(--text-muted);font-size:14px;">Add an app, consultant, or anything that helped.</p>
+      </div>`;
+    return;
+  }
+  grid.innerHTML = services.map(serviceCardHTML).join('');
+}
+
+function serviceCardHTML(s) {
+  const cat    = SVC_CATS[s.category] || SVC_CATS.other;
+  const isFame = s.verdict === 'love';
+  const vLabel = { love: '❤️ Highly Recommend', meh: "😐 It's Okay", pass: "👎 Do Not Recommend" }[s.verdict];
+  return `
+  <div class="product-card verdict-${s.verdict}${isFame ? ' is-fame' : ''}">
+    <div class="card-body">
+      <div class="product-header">
+        <div class="product-header-text">
+          <div class="cat-date-row">
+            <span class="category-badge ${cat.cls}">${cat.em} ${cat.label}</span>
+            <span class="card-date">${fmtDate(s.createdAt)}</span>
+          </div>
+          <div class="product-name">${s.link ? `<a href="${esc(s.link)}" target="_blank" rel="noopener">${esc(s.name)}</a>` : esc(s.name)}</div>
+        </div>
+      </div>
+      ${s.notes ? `<div class="pros-cons"><div class="pros" style="grid-column:1/-1"><div class="pros-label">Notes</div>${esc(s.notes)}</div></div>` : ''}
+      <div class="card-footer">
+        <span class="verdict-badge vb-${s.verdict}">${vLabel}</span>
+        <div class="card-actions" style="margin-left:auto;">
+          <button class="card-btn" title="Edit"   onclick="openServiceModal('${s.id}')">✏️</button>
+          <button class="card-btn" title="Delete" onclick="deleteService('${s.id}')">🗑️</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+let editingServiceId = null;
+
+function openServiceModal(id) {
+  editingServiceId = id || null;
+  document.getElementById('service-modal-title').textContent = id ? 'Edit Service' : 'Add a Service';
+  clearServiceForm();
+  if (id) {
+    const s = services.find(x => x.id === id);
+    if (s) {
+      document.getElementById('sf-name').value     = s.name;
+      document.getElementById('sf-category').value = s.category;
+      document.getElementById('sf-notes').value    = s.notes || '';
+      document.getElementById('sf-link').value     = s.link  || '';
+      document.getElementById('sf-id').value       = s.id;
+      const vEl = document.getElementById('sv-' + s.verdict);
+      if (vEl) vEl.checked = true;
+    }
+  }
+  document.getElementById('service-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => document.getElementById('sf-name').focus(), 80);
+}
+
+function closeServiceModal() {
+  document.getElementById('service-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  editingServiceId = null;
+}
+
+function onServiceOverlayClick(e) {
+  if (e.target === document.getElementById('service-overlay')) closeServiceModal();
+}
+
+function clearServiceForm() {
+  ['sf-name', 'sf-notes', 'sf-link', 'sf-id'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('sf-category').value = '';
+  document.querySelectorAll('input[name="svc-verdict"]').forEach(el => el.checked = false);
+}
+
+function submitServiceForm() {
+  const name     = document.getElementById('sf-name').value.trim();
+  const category = document.getElementById('sf-category').value;
+  const verdict  = document.querySelector('input[name="svc-verdict"]:checked')?.value;
+
+  const missing = [];
+  if (!name)     missing.push('service name');
+  if (!category) missing.push('category');
+  if (!verdict)  missing.push('verdict');
+  if (missing.length) { alert('Please fill in: ' + missing.join(', ') + '.'); return; }
+
+  const data = {
+    name, category, verdict,
+    notes: document.getElementById('sf-notes').value.trim(),
+    link:  document.getElementById('sf-link').value.trim(),
+  };
+
+  if (editingServiceId) {
+    const idx = services.findIndex(s => s.id === editingServiceId);
+    if (idx !== -1) services[idx] = { ...services[idx], ...data };
+  } else {
+    data.id        = uid();
+    data.createdAt = Date.now();
+    services.unshift(data);
+  }
+
+  persistServices();
+  closeServiceModal();
+  renderServices();
+}
+
+function deleteService(id) {
+  if (!confirm('Remove this service?')) return;
+  services = services.filter(s => s.id !== id);
+  persistServices();
+  renderServices();
+}
+
+// ══ Experiences ═══════════════════════════════════════════════════════
+
+let experiences = JSON.parse(localStorage.getItem('shelf_experiences') || '[]');
+let expTab      = 'tried'; // 'tried' | 'totry'
+
+const EXP_CATS = {
+  music:    { em: '🎵', label: 'Music',           cls: 'cat-nursery'   },
+  swimming: { em: '🏊', label: 'Swimming',         cls: 'cat-bathing'   },
+  sensory:  { em: '🎨', label: 'Sensory & Play',   cls: 'cat-toys'      },
+  classes:  { em: '📚', label: 'Classes',           cls: 'cat-other'     },
+  outdoor:  { em: '🌳', label: 'Outdoor',           cls: 'cat-diapering' },
+  shows:    { em: '🎪', label: 'Shows & Events',    cls: 'cat-feeding'   },
+  other:    { em: '📦', label: 'Other',             cls: 'cat-other'     },
+};
+
+function persistExperiences() {
+  localStorage.setItem('shelf_experiences', JSON.stringify(experiences));
+}
+
+function setExpTab(tab) {
+  expTab = tab;
+  document.getElementById('exp-subtab-tried').classList.toggle('active', tab === 'tried');
+  document.getElementById('exp-subtab-totry').classList.toggle('active', tab === 'totry');
+  document.getElementById('btn-add-exp-label').textContent = tab === 'tried' ? 'Add Experience' : 'Add to Try';
+  renderExperiences();
+}
+
+function renderExperiences() {
+  const grid = document.getElementById('exp-grid');
+  if (!grid) return;
+  const list = experiences
+    .filter(e => e.tab === expTab)
+    .sort((a, b) => b.createdAt - a.createdAt);
+
+  if (!list.length) {
+    const msg = expTab === 'tried'
+      ? { icon: '🎠', text: 'No experiences logged yet. Add one!' }
+      : { icon: '✨', text: 'Nothing on your list yet. Add something to try!' };
+    grid.innerHTML = `
+      <div style="grid-column:1/-1;text-align:center;padding:80px 24px;">
+        <div style="font-size:48px;margin-bottom:16px;">${msg.icon}</div>
+        <p style="color:var(--text-muted);font-size:14px;">${msg.text}</p>
+      </div>`;
+    return;
+  }
+  grid.innerHTML = list.map(expCardHTML).join('');
+}
+
+function expCardHTML(e) {
+  const cat    = EXP_CATS[e.category] || EXP_CATS.other;
+  const isTried = e.tab === 'tried';
+  const vLabel = { love: '❤️ Highly Recommend', meh: "😐 It's Okay", pass: "👎 Do Not Recommend" }[e.verdict] || '';
+  const dateStr = e.date ? new Date(e.date + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+
+  return `
+  <div class="product-card${isTried && e.verdict ? ' verdict-' + e.verdict : ''}">
+    <div class="card-body">
+      <div class="product-header">
+        <div class="product-header-text">
+          <div class="cat-date-row">
+            <span class="category-badge ${cat.cls}">${cat.em} ${cat.label}</span>
+            ${dateStr ? `<span class="card-date">${dateStr}</span>` : `<span class="card-date">${fmtDate(e.createdAt)}</span>`}
+          </div>
+          <div class="product-name">${e.link ? `<a href="${esc(e.link)}" target="_blank" rel="noopener">${esc(e.name)}</a>` : esc(e.name)}</div>
+        </div>
+      </div>
+      ${e.notes ? `<div style="font-size:12.5px;color:var(--text-muted);padding:0 0 12px;line-height:1.55;">${esc(e.notes)}</div>` : ''}
+      <div class="card-footer">
+        ${isTried && vLabel ? `<span class="verdict-badge vb-${e.verdict}">${vLabel}</span>` : '<span></span>'}
+        <div class="card-actions" style="margin-left:auto;">
+          <button class="card-btn" title="Edit"   onclick="openExpModal('${e.id}')">✏️</button>
+          <button class="card-btn" title="Delete" onclick="deleteExp('${e.id}')">🗑️</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+let editingExpId = null;
+
+function openExpModal(id) {
+  editingExpId = id || null;
+  clearExpForm();
+
+  const isToTry = editingExpId
+    ? (experiences.find(e => e.id === editingExpId)?.tab === 'totry')
+    : expTab === 'totry';
+
+  document.getElementById('ef-section-verdict').style.display = isToTry ? 'none' : '';
+  document.getElementById('ef-date-label').firstChild.textContent = isToTry ? 'Planned date' : 'Date attended';
+  document.getElementById('exp-modal-title').textContent = editingExpId
+    ? (isToTry ? 'Edit To-Try' : 'Edit Experience')
+    : (isToTry ? 'Add to Try' : 'Add an Experience');
+
+  if (editingExpId) {
+    const e = experiences.find(x => x.id === editingExpId);
+    if (e) {
+      document.getElementById('ef-name').value     = e.name;
+      document.getElementById('ef-category').value = e.category;
+      document.getElementById('ef-date').value     = e.date || '';
+      document.getElementById('ef-notes').value    = e.notes || '';
+      document.getElementById('ef-link').value     = e.link  || '';
+      document.getElementById('ef-id').value       = e.id;
+      if (e.verdict) {
+        const vEl = document.getElementById('ev-' + e.verdict);
+        if (vEl) vEl.checked = true;
+      }
+    }
+  }
+
+  document.getElementById('exp-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => document.getElementById('ef-name').focus(), 80);
+}
+
+function closeExpModal() {
+  document.getElementById('exp-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  editingExpId = null;
+}
+
+function onExpOverlayClick(e) {
+  if (e.target === document.getElementById('exp-overlay')) closeExpModal();
+}
+
+function clearExpForm() {
+  ['ef-name', 'ef-date', 'ef-notes', 'ef-link', 'ef-id'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('ef-category').value = '';
+  document.querySelectorAll('input[name="exp-verdict"]').forEach(el => el.checked = false);
+  document.getElementById('exp-autofill-status').style.display = 'none';
+}
+
+function submitExpForm() {
+  const name     = document.getElementById('ef-name').value.trim();
+  const category = document.getElementById('ef-category').value;
+  const isToTry  = editingExpId
+    ? (experiences.find(e => e.id === editingExpId)?.tab === 'totry')
+    : expTab === 'totry';
+  const verdict  = document.querySelector('input[name="exp-verdict"]:checked')?.value;
+
+  const missing = [];
+  if (!name)               missing.push('experience name');
+  if (!category)           missing.push('category');
+  if (!isToTry && !verdict) missing.push('verdict');
+  if (missing.length) { alert('Please fill in: ' + missing.join(', ') + '.'); return; }
+
+  const data = {
+    name, category,
+    tab:    isToTry ? 'totry' : 'tried',
+    verdict: isToTry ? undefined : verdict,
+    date:   document.getElementById('ef-date').value || '',
+    notes:  document.getElementById('ef-notes').value.trim(),
+    link:   document.getElementById('ef-link').value.trim(),
+  };
+
+  if (editingExpId) {
+    const idx = experiences.findIndex(e => e.id === editingExpId);
+    if (idx !== -1) experiences[idx] = { ...experiences[idx], ...data };
+  } else {
+    data.id        = uid();
+    data.createdAt = Date.now();
+    experiences.unshift(data);
+  }
+
+  persistExperiences();
+  closeExpModal();
+  renderExperiences();
+}
+
+function deleteExp(id) {
+  if (!confirm('Remove this experience?')) return;
+  experiences = experiences.filter(e => e.id !== id);
+  persistExperiences();
+  renderExperiences();
+}
+
+async function expAutofill() {
+  const link = document.getElementById('ef-link').value.trim();
+  if (!link) { alert('Paste a link first.'); return; }
+  if (!WORKER_URL) { alert('Auto-fill isn\'t set up yet.'); return; }
+
+  const btn    = document.getElementById('exp-autofill-btn');
+  const status = document.getElementById('exp-autofill-status');
+  btn.textContent = 'Fetching…';
+  btn.disabled = true;
+  status.style.display = 'none';
+
+  try {
+    const res  = await fetch(`${WORKER_URL}?url=${encodeURIComponent(link)}`);
+    const data = await res.json();
+    console.log('[exp autofill] raw response:', data);
+    const parts = [];
+    if (data.title) {
+      if (!document.getElementById('ef-name').value) document.getElementById('ef-name').value = data.title;
+      parts.push('<span style="color:var(--love)">✓ Title</span>');
+    } else {
+      parts.push('<span style="color:var(--text-muted)">✗ No title</span>');
+    }
+    status.innerHTML = parts.join(' · ');
+    status.style.display = 'block';
+  } catch {
+    status.innerHTML = '<span style="color:var(--pass)">Could not reach the worker.</span>';
+    status.style.display = 'block';
+  } finally {
+    btn.textContent = 'Auto-fill';
+    btn.disabled = false;
+  }
+}
+
+// ── Auto-fill ────────────────────────────────────────────────────────
+async function autofill() {
+  const link = document.getElementById('f-link').value.trim();
+  if (!link) { alert('Paste a link first.'); return; }
+  if (!WORKER_URL) { alert('Auto-fill isn\'t set up yet — the Worker URL is missing.'); return; }
+
+  const btn    = document.getElementById('autofill-btn');
+  const status = document.getElementById('autofill-status');
+  btn.textContent = 'Fetching…';
+  btn.disabled = true;
+  status.style.display = 'none';
+
+  try {
+    const res = await fetch(`${WORKER_URL}?url=${encodeURIComponent(link)}`);
+    if (!res.ok) throw new Error(`Server error ${res.status}`);
+    const data = await res.json();
+
+    console.log('[autofill] raw response:', data);
+
+    const parts = [];
+
+    if (data.title) {
+      const nameEl = document.getElementById('f-name');
+      if (!nameEl.value) nameEl.value = data.title;
+      parts.push('<span style="color:var(--love)">✓ Title</span>');
+    } else {
+      parts.push('<span style="color:var(--text-muted)">✗ No title</span>');
+    }
+
+    if (data.image) {
+      const imgEl = document.getElementById('f-image');
+      if (!imgEl.value) { imgEl.value = data.image; updateImagePreview(); }
+      parts.push('<span style="color:var(--love)">✓ Image</span>');
+    } else {
+      parts.push('<span style="color:var(--text-muted)">✗ No image</span>');
+    }
+
+    status.innerHTML = parts.join(' · ');
+    status.style.display = 'block';
+
+  } catch (err) {
+    console.error('[autofill] error:', err);
+    status.innerHTML = '<span style="color:var(--pass)">Could not reach the worker — fill in manually.</span>';
+    status.style.display = 'block';
+  } finally {
+    btn.textContent = 'Auto-fill';
+    btn.disabled = false;
+  }
+}
+
+function updateImagePreview() {
+  const val = document.getElementById('f-image').value.trim();
+  const preview = document.getElementById('f-image-preview');
+  if (val) { preview.src = val; preview.style.display = 'block'; }
+  else { preview.src = ''; preview.style.display = 'none'; }
+}
+
+// ── Boot ─────────────────────────────────────────────────────────────
+initTheme();
+buildQuickTags();
+render();
+renderServices();
+renderExperiences();
+</script>
+</body>
+</html>

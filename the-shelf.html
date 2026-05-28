@@ -794,11 +794,40 @@
 </head>
 <body>
 
-<!-- ══ Loading overlay (hidden once Firebase auth resolves) ═══════════ -->
-<div id="loading-overlay" style="position:fixed;inset:0;background:#F9FAFA;display:flex;align-items:center;justify-content:center;z-index:9999;font-family:'Inter',sans-serif;">
-  <div style="text-align:center;color:#9A6055;">
-    <div style="font-size:44px;margin-bottom:14px;">🍦</div>
-    <div style="font-size:14px;font-weight:500;">Loading your shelf…</div>
+<!-- ══ Auth overlay — shown when signed out, hidden when signed in ══════ -->
+<div id="auth-overlay" style="position:fixed;inset:0;background:#F9FAFA;display:flex;align-items:center;justify-content:center;z-index:9999;font-family:'Inter',sans-serif;padding:24px;">
+  <div style="background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(58,26,26,.10),0 1px 4px rgba(58,26,26,.06);padding:40px;width:100%;max-width:400px;">
+    <div style="text-align:center;margin-bottom:32px;">
+      <span style="font-size:40px;display:block;margin-bottom:10px;">🍦</span>
+      <div style="font-size:22px;font-weight:700;color:#0047FF;letter-spacing:-.03em;">sillycone</div>
+      <div style="font-size:12px;color:#9A6055;margin-top:4px;letter-spacing:.04em;text-transform:uppercase;font-weight:500;">Your baby hall of fame</div>
+    </div>
+
+    <h2 id="auth-title" style="font-size:19px;font-weight:700;letter-spacing:-.02em;margin-bottom:22px;text-align:center;color:#3A1A1A;">Welcome back</h2>
+
+    <div id="auth-error" style="display:none;font-size:13px;color:#D4356A;background:#FFE8F2;border:1px solid #F0A0C0;border-radius:8px;padding:10px 13px;margin-bottom:14px;line-height:1.45;"></div>
+
+    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px;">
+      <label style="font-size:12.5px;font-weight:600;color:#3A1A1A;" for="auth-email">Email</label>
+      <input id="auth-email" type="email" placeholder="you@example.com" autocomplete="email"
+        style="font-family:inherit;font-size:14px;padding:10px 13px;border:1.5px solid #D4D6DA;border-radius:8px;background:#F9FAFA;color:#3A1A1A;outline:none;width:100%;transition:border-color .15s;"
+        onfocus="this.style.borderColor='#0047FF'" onblur="this.style.borderColor='#D4D6DA'">
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:6px;">
+      <label style="font-size:12.5px;font-weight:600;color:#3A1A1A;" for="auth-password">Password</label>
+      <input id="auth-password" type="password" placeholder="••••••••" autocomplete="current-password"
+        style="font-family:inherit;font-size:14px;padding:10px 13px;border:1.5px solid #D4D6DA;border-radius:8px;background:#F9FAFA;color:#3A1A1A;outline:none;width:100%;transition:border-color .15s;"
+        onfocus="this.style.borderColor='#0047FF'" onblur="this.style.borderColor='#D4D6DA'">
+    </div>
+
+    <button id="auth-btn" onclick="submitAuth()"
+      style="width:100%;padding:11px;background:#0047FF;color:#fff;border:none;border-radius:8px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;margin-top:10px;transition:background .15s;"
+      onmouseover="this.style.background='#0038CC'" onmouseout="this.style.background='#0047FF'">Sign in</button>
+
+    <div id="auth-toggle" style="text-align:center;margin-top:18px;font-size:13px;color:#9A6055;">
+      New here? <button onclick="toggleAuthMode()" style="background:none;border:none;color:#0047FF;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;padding:0;">Create an account</button>
+    </div>
   </div>
 </div>
 
@@ -1411,8 +1440,63 @@ function uid() {
 }
 
 // ── Auth ─────────────────────────────────────────────────────────────
+let authIsSignUp = false;
+
+function toggleAuthMode() {
+  authIsSignUp = !authIsSignUp;
+  document.getElementById('auth-title').textContent = authIsSignUp ? 'Create account' : 'Welcome back';
+  document.getElementById('auth-btn').textContent   = authIsSignUp ? 'Sign up' : 'Sign in';
+  document.getElementById('auth-password').autocomplete = authIsSignUp ? 'new-password' : 'current-password';
+  document.getElementById('auth-toggle').innerHTML  = authIsSignUp
+    ? 'Already have an account? <button onclick="toggleAuthMode()" style="background:none;border:none;color:#0047FF;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;padding:0;">Sign in</button>'
+    : 'New here? <button onclick="toggleAuthMode()" style="background:none;border:none;color:#0047FF;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;padding:0;">Create an account</button>';
+  document.getElementById('auth-error').style.display = 'none';
+}
+
+async function submitAuth() {
+  const email    = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const btn      = document.getElementById('auth-btn');
+  const err      = document.getElementById('auth-error');
+  if (!email || !password) { showAuthError('Please fill in both fields.'); return; }
+  btn.disabled = true;
+  btn.textContent = authIsSignUp ? 'Creating account…' : 'Signing in…';
+  err.style.display = 'none';
+  try {
+    if (authIsSignUp) {
+      await firebase.auth().createUserWithEmailAndPassword(email, password);
+    } else {
+      await firebase.auth().signInWithEmailAndPassword(email, password);
+    }
+    // onAuthStateChanged will fire and reveal the app
+  } catch (e) {
+    showAuthError(authFriendlyError(e.code));
+    btn.disabled = false;
+    btn.textContent = authIsSignUp ? 'Sign up' : 'Sign in';
+  }
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function authFriendlyError(code) {
+  return ({
+    'auth/user-not-found':       'No account found with that email.',
+    'auth/wrong-password':       'Incorrect password.',
+    'auth/invalid-email':        'Please enter a valid email address.',
+    'auth/email-already-in-use': 'An account with that email already exists.',
+    'auth/weak-password':        'Password must be at least 6 characters.',
+    'auth/invalid-credential':   'Email or password is incorrect.',
+    'auth/too-many-requests':    'Too many attempts — please try again later.',
+  })[code] || 'Something went wrong. Please try again.';
+}
+
 function logout() {
-  firebase.auth().signOut().then(() => window.location.replace('index.html'));
+  firebase.auth().signOut();
+  // onAuthStateChanged will fire and show the login overlay
 }
 
 // ── Dark mode ────────────────────────────────────────────────────────
@@ -1825,6 +1909,7 @@ function fmtDate(ts) {
 // ── Keyboard ─────────────────────────────────────────────────────────
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { closeModal(); closeServiceModal(); closeExpModal(); closeResourceModal(); }
+  if (e.key === 'Enter'  && document.getElementById('auth-overlay').style.display !== 'none') submitAuth();
 });
 
 // ══ Services ══════════════════════════════════════════════════════════
@@ -2388,15 +2473,21 @@ function initListeners() {
 }
 
 // ── Boot ─────────────────────────────────────────────────────────────
+initTheme();
+buildQuickTags();
+
 firebase.auth().onAuthStateChanged(user => {
-  if (!user) { window.location.replace('index.html'); return; }
+  if (!user) {
+    // Tear down any active listeners and show the login overlay
+    document.getElementById('auth-overlay').style.display = 'flex';
+    return;
+  }
   currentUser = user;
-  initTheme();
-  buildQuickTags();
+  document.getElementById('auth-overlay').style.display = 'none';
   initListeners();
   checkMigration();
-  document.getElementById('loading-overlay').style.display = 'none';
 });
+
 </script>
 </body>
 </html>

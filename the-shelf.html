@@ -2784,6 +2784,86 @@ function bootApp() {
   checkMigration();
 }
 
+// ── One-time data claim: re-attribute another UID's data to this account
+window.claimDataFrom = async function(oldUID) {
+  if (!currentUser) { console.error('[sillycone] Not logged in.'); return; }
+  if (!oldUID) { console.error('[sillycone] Usage: claimDataFrom("OLD_UID")'); return; }
+  const newUID  = currentUser.uid;
+  const newName = myDisplayName;
+  if (oldUID === newUID) { console.warn('[sillycone] Old UID is the same as current — nothing to do.'); return; }
+
+  console.log(`[sillycone] Claiming data from ${oldUID} → ${newUID} (${currentUser.email})`);
+
+  // ── 1. Shared reviews/ re-attribution ───────────────────────────────
+  const reviewsSnap = await firestore.collection('reviews').where('userId', '==', oldUID).get();
+  console.log(`  Found ${reviewsSnap.size} review(s) to migrate.`);
+
+  // ── 2. Shared products/ re-attribution (addedBy) ─────────────────────
+  const productsSnap = await firestore.collection('products').where('addedBy', '==', oldUID).get();
+  console.log(`  Found ${productsSnap.size} product(s) to re-attribute.`);
+
+  // ── 3. Old per-user products (pre-migration leftovers) ───────────────
+  const oldUserProductsSnap = await firestore.collection('users').doc(oldUID).collection('products').get();
+  console.log(`  Found ${oldUserProductsSnap.size} old per-user product(s).`);
+
+  // ── 4. Old per-user meta ─────────────────────────────────────────────
+  const oldMetaSnap = await firestore.collection('users').doc(oldUID).collection('productMeta').get();
+  console.log(`  Found ${oldMetaSnap.size} meta doc(s).`);
+
+  // Batch writes (Firestore limit: 500 ops per batch)
+  const batches   = [];
+  let   curBatch  = firestore.batch();
+  let   opCount   = 0;
+  const op = (fn) => {
+    if (opCount >= 490) { batches.push(curBatch); curBatch = firestore.batch(); opCount = 0; }
+    fn(curBatch); opCount++;
+  };
+
+  reviewsSnap.docs.forEach(doc => {
+    const data   = doc.data();
+    const newId  = data.productId + '_' + newUID;
+    op(b => b.set(firestore.collection('reviews').doc(newId),
+      { ...data, id: newId, userId: newUID, userName: newName }));
+    op(b => b.delete(firestore.collection('reviews').doc(doc.id)));
+  });
+
+  productsSnap.docs.forEach(doc => {
+    op(b => b.update(firestore.collection('products').doc(doc.id),
+      { addedBy: newUID, addedByName: newName }));
+  });
+
+  oldUserProductsSnap.docs.forEach(doc => {
+    const item = doc.data();
+    const productId = item.id || doc.id;
+    op(b => b.set(firestore.collection('products').doc(productId), {
+      id: productId, name: item.name, brand: item.brand || '',
+      genericBrand: !!item.genericBrand, category: item.category || 'other',
+      link: item.link || '', image: item.image || '',
+      createdAt: item.createdAt || Date.now(),
+      addedBy: newUID, addedByName: newName,
+    }, { merge: true }));
+    if (item.source !== 'others' && item.verdict) {
+      const reviewId = productId + '_' + newUID;
+      op(b => b.set(firestore.collection('reviews').doc(reviewId), {
+        id: reviewId, productId, userId: newUID, userName: newName,
+        verdict: item.verdict, pros: item.pros || '', cons: item.cons || '',
+        createdAt: item.createdAt || Date.now(),
+      }, { merge: true }));
+    }
+    op(b => b.delete(firestore.collection('users').doc(oldUID).collection('products').doc(doc.id)));
+  });
+
+  oldMetaSnap.docs.forEach(doc => {
+    op(b => b.set(userCol('productMeta').doc(doc.id), doc.data(), { merge: true }));
+    op(b => b.delete(firestore.collection('users').doc(oldUID).collection('productMeta').doc(doc.id)));
+  });
+
+  batches.push(curBatch);
+  for (const batch of batches) await batch.commit();
+  console.log('[sillycone] ✓ Migration complete! Refreshing…');
+  setTimeout(() => location.reload(), 800);
+};
+
 // ── Boot ─────────────────────────────────────────────────────────────
 initTheme();
 buildQuickTags();

@@ -1,4 +1,230 @@
 <!DOCTYPE html>
+<html lang="en">
+<head>
 <meta charset="UTF-8">
-<meta http-equiv="refresh" content="0; url=the-shelf.html">
-<script>location.replace("the-shelf.html")</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sillycone — Sign in</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍦</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #F9FAFA;
+    color: #3A1A1A;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(58,26,26,.10), 0 1px 4px rgba(58,26,26,.06);
+    padding: 40px;
+    width: 100%;
+    max-width: 400px;
+  }
+
+  .brand {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .brand-icon   { font-size: 40px; line-height: 1; display: block; margin-bottom: 10px; }
+  .brand-name   { font-size: 22px; font-weight: 700; color: #0047FF; letter-spacing: -.03em; }
+  .brand-tagline{ font-size: 12px; color: #9A6055; margin-top: 4px; letter-spacing: .04em; text-transform: uppercase; font-weight: 500; }
+
+  h2 {
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    margin-bottom: 22px;
+    text-align: center;
+    color: #3A1A1A;
+  }
+
+  .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+
+  label { font-size: 12.5px; font-weight: 600; color: #3A1A1A; }
+
+  input[type="email"],
+  input[type="password"] {
+    font-family: inherit;
+    font-size: 14px;
+    padding: 10px 13px;
+    border: 1.5px solid #D4D6DA;
+    border-radius: 8px;
+    background: #F9FAFA;
+    color: #3A1A1A;
+    outline: none;
+    transition: border-color .15s, background .15s;
+    width: 100%;
+  }
+  input[type="email"]:focus,
+  input[type="password"]:focus { border-color: #0047FF; background: #fff; }
+
+  .btn-primary {
+    width: 100%;
+    padding: 11px;
+    background: #0047FF;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s, transform .1s;
+    margin-top: 6px;
+  }
+  .btn-primary:hover:not(:disabled) { background: #0038CC; transform: translateY(-1px); }
+  .btn-primary:disabled { opacity: .6; cursor: not-allowed; }
+
+  .error-msg {
+    display: none;
+    font-size: 13px;
+    color: #D4356A;
+    background: #FFE8F2;
+    border: 1px solid #F0A0C0;
+    border-radius: 8px;
+    padding: 10px 13px;
+    margin-bottom: 14px;
+    line-height: 1.45;
+  }
+
+  .toggle-row {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 13px;
+    color: #9A6055;
+  }
+
+  .link-btn {
+    background: none;
+    border: none;
+    color: #0047FF;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: none;
+  }
+  .link-btn:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="brand">
+    <span class="brand-icon">🍦</span>
+    <div class="brand-name">sillycone</div>
+    <div class="brand-tagline">Your baby hall of fame</div>
+  </div>
+
+  <h2 id="form-title">Welcome back</h2>
+
+  <div id="error-msg" class="error-msg"></div>
+
+  <div class="form-group">
+    <label for="email">Email</label>
+    <input id="email" type="email" placeholder="you@example.com" autocomplete="email">
+  </div>
+
+  <div class="form-group">
+    <label for="password">Password</label>
+    <input id="password" type="password" placeholder="••••••••" autocomplete="current-password">
+  </div>
+
+  <button class="btn-primary" id="submit-btn" onclick="submitAuth()">Sign in</button>
+
+  <div class="toggle-row" id="toggle-text">
+    New here? <button class="link-btn" onclick="toggleMode()">Create an account</button>
+  </div>
+</div>
+
+<script>
+// ── Firebase Config ─────────────────────────────────────────────────
+// ⚠️  Replace every PASTE_… value with your project's config from the
+//     Firebase console → Project settings → Your apps → SDK setup
+const firebaseConfig = {
+  apiKey:            "PASTE_YOUR_API_KEY",
+  authDomain:        "PASTE_YOUR_AUTH_DOMAIN",
+  projectId:         "PASTE_YOUR_PROJECT_ID",
+  storageBucket:     "PASTE_YOUR_STORAGE_BUCKET",
+  messagingSenderId: "PASTE_YOUR_SENDER_ID",
+  appId:             "PASTE_YOUR_APP_ID"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+// Skip this page if already signed in
+firebase.auth().onAuthStateChanged(user => {
+  if (user) window.location.replace('the-shelf.html');
+});
+
+// ── Toggle between sign-in and sign-up ──────────────────────────────
+let isSignUp = false;
+
+function toggleMode() {
+  isSignUp = !isSignUp;
+  document.getElementById('form-title').textContent = isSignUp ? 'Create account' : 'Welcome back';
+  document.getElementById('submit-btn').textContent = isSignUp ? 'Sign up' : 'Sign in';
+  document.getElementById('password').autocomplete  = isSignUp ? 'new-password' : 'current-password';
+  document.getElementById('toggle-text').innerHTML  = isSignUp
+    ? 'Already have an account? <button class="link-btn" onclick="toggleMode()">Sign in</button>'
+    : 'New here? <button class="link-btn" onclick="toggleMode()">Create an account</button>';
+  clearError();
+}
+
+// ── Auth submit ──────────────────────────────────────────────────────
+async function submitAuth() {
+  const email    = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const btn      = document.getElementById('submit-btn');
+
+  if (!email || !password) { showError('Please fill in both fields.'); return; }
+
+  btn.disabled    = true;
+  btn.textContent = isSignUp ? 'Creating account…' : 'Signing in…';
+  clearError();
+
+  try {
+    if (isSignUp) {
+      await firebase.auth().createUserWithEmailAndPassword(email, password);
+    } else {
+      await firebase.auth().signInWithEmailAndPassword(email, password);
+    }
+    window.location.replace('the-shelf.html');
+  } catch (e) {
+    showError(friendlyError(e.code));
+    btn.disabled    = false;
+    btn.textContent = isSignUp ? 'Sign up' : 'Sign in';
+  }
+}
+
+function friendlyError(code) {
+  return ({
+    'auth/user-not-found':       'No account found with that email.',
+    'auth/wrong-password':       'Incorrect password.',
+    'auth/invalid-email':        'Please enter a valid email address.',
+    'auth/email-already-in-use': 'An account with that email already exists.',
+    'auth/weak-password':        'Password must be at least 6 characters.',
+    'auth/invalid-credential':   'Email or password is incorrect.',
+    'auth/too-many-requests':    'Too many attempts — please try again later.',
+  })[code] || 'Something went wrong. Please try again.';
+}
+
+function showError(msg)  { const el = document.getElementById('error-msg'); el.textContent = msg; el.style.display = 'block'; }
+function clearError()    { document.getElementById('error-msg').style.display = 'none'; }
+
+document.addEventListener('keydown', e => { if (e.key === 'Enter') submitAuth(); });
+</script>
+</body>
+</html>

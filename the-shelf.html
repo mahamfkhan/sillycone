@@ -788,8 +788,19 @@
     .pros-cons { grid-template-columns: 1fr; }
   }
 </style>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 </head>
 <body>
+
+<!-- ══ Loading overlay (hidden once Firebase auth resolves) ═══════════ -->
+<div id="loading-overlay" style="position:fixed;inset:0;background:#F9FAFA;display:flex;align-items:center;justify-content:center;z-index:9999;font-family:'Inter',sans-serif;">
+  <div style="text-align:center;color:#9A6055;">
+    <div style="font-size:44px;margin-bottom:14px;">🍦</div>
+    <div style="font-size:14px;font-weight:500;">Loading your shelf…</div>
+  </div>
+</div>
 
 <!-- ══ App Header ══════════════════════════════════════════════════════ -->
 <header class="app-header">
@@ -804,6 +815,7 @@
       <button class="main-tab" data-tab="experiences">Experiences</button>
       <button class="main-tab" data-tab="resources">Resources</button>
     </nav>
+    <button onclick="logout()" style="font-family:inherit;font-size:12.5px;font-weight:500;padding:6px 13px;border:1.5px solid var(--border);border-radius:7px;background:transparent;color:var(--text-muted);cursor:pointer;flex-shrink:0;transition:border-color .15s,color .15s;" onmouseover="this.style.borderColor='var(--text-muted)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">Sign out</button>
   </div>
 </header>
 
@@ -1259,23 +1271,36 @@
 
 <!-- ══ Script ═════════════════════════════════════════════════════════ -->
 <script>
+// ── Firebase Config ──────────────────────────────────────────────────
+// ⚠️  Paste your Firebase project config here (same values as index.html)
+const firebaseConfig = {
+  apiKey:            "PASTE_YOUR_API_KEY",
+  authDomain:        "PASTE_YOUR_AUTH_DOMAIN",
+  projectId:         "PASTE_YOUR_PROJECT_ID",
+  storageBucket:     "PASTE_YOUR_STORAGE_BUCKET",
+  messagingSenderId: "PASTE_YOUR_SENDER_ID",
+  appId:             "PASTE_YOUR_APP_ID"
+};
+firebase.initializeApp(firebaseConfig);
+const firestore = firebase.firestore();
+let currentUser = null;
+
+// Returns a Firestore CollectionReference scoped to the signed-in user
+function userCol(name) {
+  return firestore.collection('users').doc(currentUser.uid).collection(name);
+}
+
+// Saves a document, stripping undefined values that Firestore rejects
+function saveDoc(colName, id, data) {
+  userCol(colName).doc(id).set(JSON.parse(JSON.stringify(data)));
+}
+
 // ── Worker URL ───────────────────────────────────────────────────────
-// After deploying worker.js to Cloudflare, paste your worker URL here:
 const WORKER_URL = 'https://url-parser.mahamfkhan.workers.dev';
 
-// ── State ────────────────────────────────────────────────────────────
-let products  = JSON.parse(localStorage.getItem('shelf_products') || '[]');
-let services  = JSON.parse(localStorage.getItem('shelf_services') || '[]');
-
-// Migrate existing products to add source + bookmarked fields
-(function migrate() {
-  let dirty = false;
-  products.forEach(p => {
-    if (!p.source) { p.source = p.recommendedBy ? 'others' : 'mine'; dirty = true; }
-    if (p.bookmarked === undefined) { p.bookmarked = false; dirty = true; }
-  });
-  if (dirty) localStorage.setItem('shelf_products', JSON.stringify(products));
-})();
+// ── State (populated by Firestore listeners once signed in) ──────────
+let products = [];
+let services = [];
 
 let filter         = 'all';
 let categoryFilter = 'all';
@@ -1366,12 +1391,16 @@ const CATS = {
 };
 
 // ── Persistence ──────────────────────────────────────────────────────
-function persist() {
-  localStorage.setItem('shelf_products', JSON.stringify(products));
-}
+// Data is saved to Firestore directly on each change — no bulk persist needed
+function persist() {}
 
 function uid() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+// ── Auth ─────────────────────────────────────────────────────────────
+function logout() {
+  firebase.auth().signOut().then(() => window.location.replace('index.html'));
 }
 
 // ── Dark mode ────────────────────────────────────────────────────────
@@ -1458,7 +1487,7 @@ function toggleBookmarkedFilter() {
 
 function toggleBookmark(id) {
   const p = products.find(x => x.id === id);
-  if (p) { p.bookmarked = !p.bookmarked; persist(); render(); }
+  if (p) { p.bookmarked = !p.bookmarked; saveDoc('products', id, p); render(); }
 }
 
 function filtered() {
@@ -1742,15 +1771,18 @@ function submitForm() {
 
   if (editingId) {
     const idx = products.findIndex(p => p.id === editingId);
-    if (idx !== -1) products[idx] = { ...products[idx], ...data };
+    if (idx !== -1) {
+      products[idx] = { ...products[idx], ...data };
+      saveDoc('products', editingId, products[idx]);
+    }
   } else {
     data.id        = uid();
     data.createdAt = Date.now();
     data.bookmarked = false;
     products.unshift(data);
+    saveDoc('products', data.id, data);
   }
 
-  persist();
   closeModal();
   render();
 }
@@ -1758,8 +1790,8 @@ function submitForm() {
 // ── Delete ───────────────────────────────────────────────────────────
 function deleteProduct(id) {
   if (!confirm('Remove this product from your shelf?')) return;
+  userCol('products').doc(id).delete();
   products = products.filter(p => p.id !== id);
-  persist();
   render();
 }
 
@@ -1795,9 +1827,7 @@ const SVC_CATS = {
   other:       { em: '📦', label: 'Other',              cls: 'cat-other'     },
 };
 
-function persistServices() {
-  localStorage.setItem('shelf_services', JSON.stringify(services));
-}
+function persistServices() {}
 
 function renderServices() {
   const grid = document.getElementById('service-grid');
@@ -1900,28 +1930,31 @@ function submitServiceForm() {
 
   if (editingServiceId) {
     const idx = services.findIndex(s => s.id === editingServiceId);
-    if (idx !== -1) services[idx] = { ...services[idx], ...data };
+    if (idx !== -1) {
+      services[idx] = { ...services[idx], ...data };
+      saveDoc('services', editingServiceId, services[idx]);
+    }
   } else {
     data.id        = uid();
     data.createdAt = Date.now();
     services.unshift(data);
+    saveDoc('services', data.id, data);
   }
 
-  persistServices();
   closeServiceModal();
   renderServices();
 }
 
 function deleteService(id) {
   if (!confirm('Remove this service?')) return;
+  userCol('services').doc(id).delete();
   services = services.filter(s => s.id !== id);
-  persistServices();
   renderServices();
 }
 
 // ══ Experiences ═══════════════════════════════════════════════════════
 
-let experiences = JSON.parse(localStorage.getItem('shelf_experiences') || '[]');
+let experiences = [];
 let expTab      = 'tried'; // 'tried' | 'totry'
 
 const EXP_CATS = {
@@ -1934,9 +1967,7 @@ const EXP_CATS = {
   other:    { em: '📦', label: 'Other',             cls: 'cat-other'     },
 };
 
-function persistExperiences() {
-  localStorage.setItem('shelf_experiences', JSON.stringify(experiences));
-}
+function persistExperiences() {}
 
 function setExpTab(tab) {
   expTab = tab;
@@ -2076,22 +2107,25 @@ function submitExpForm() {
 
   if (editingExpId) {
     const idx = experiences.findIndex(e => e.id === editingExpId);
-    if (idx !== -1) experiences[idx] = { ...experiences[idx], ...data };
+    if (idx !== -1) {
+      experiences[idx] = { ...experiences[idx], ...data };
+      saveDoc('experiences', editingExpId, experiences[idx]);
+    }
   } else {
     data.id        = uid();
     data.createdAt = Date.now();
     experiences.unshift(data);
+    saveDoc('experiences', data.id, data);
   }
 
-  persistExperiences();
   closeExpModal();
   renderExperiences();
 }
 
 function deleteExp(id) {
   if (!confirm('Remove this experience?')) return;
+  userCol('experiences').doc(id).delete();
   experiences = experiences.filter(e => e.id !== id);
-  persistExperiences();
   renderExperiences();
 }
 
@@ -2130,11 +2164,9 @@ async function expAutofill() {
 
 // ══ Resources ═════════════════════════════════════════════════════════
 
-let resources = JSON.parse(localStorage.getItem('shelf_resources') || '[]');
+let resources = [];
 
-function persistResources() {
-  localStorage.setItem('shelf_resources', JSON.stringify(resources));
-}
+function persistResources() {}
 
 function renderResources() {
   const list = document.getElementById('resource-list');
@@ -2199,21 +2231,24 @@ function submitResourceForm() {
   const data = { name, url };
   if (editingResourceId) {
     const idx = resources.findIndex(r => r.id === editingResourceId);
-    if (idx !== -1) resources[idx] = { ...resources[idx], ...data };
+    if (idx !== -1) {
+      resources[idx] = { ...resources[idx], ...data };
+      saveDoc('resources', editingResourceId, resources[idx]);
+    }
   } else {
     data.id        = uid();
     data.createdAt = Date.now();
     resources.unshift(data);
+    saveDoc('resources', data.id, data);
   }
-  persistResources();
   closeResourceModal();
   renderResources();
 }
 
 function deleteResource(id) {
   if (!confirm('Remove this resource?')) return;
+  userCol('resources').doc(id).delete();
   resources = resources.filter(r => r.id !== id);
-  persistResources();
   renderResources();
 }
 
@@ -2274,13 +2309,35 @@ function updateImagePreview() {
   else { preview.src = ''; preview.style.display = 'none'; }
 }
 
+// ── Firestore real-time listeners ────────────────────────────────────
+function initListeners() {
+  userCol('products').onSnapshot(snap => {
+    products = snap.docs.map(d => d.data());
+    render();
+  });
+  userCol('services').onSnapshot(snap => {
+    services = snap.docs.map(d => d.data());
+    renderServices();
+  });
+  userCol('experiences').onSnapshot(snap => {
+    experiences = snap.docs.map(d => d.data());
+    renderExperiences();
+  });
+  userCol('resources').onSnapshot(snap => {
+    resources = snap.docs.map(d => d.data());
+    renderResources();
+  });
+}
+
 // ── Boot ─────────────────────────────────────────────────────────────
-initTheme();
-buildQuickTags();
-render();
-renderServices();
-renderExperiences();
-renderResources();
+firebase.auth().onAuthStateChanged(user => {
+  if (!user) { window.location.replace('index.html'); return; }
+  currentUser = user;
+  initTheme();
+  buildQuickTags();
+  initListeners();
+  document.getElementById('loading-overlay').style.display = 'none';
+});
 </script>
 </body>
 </html>

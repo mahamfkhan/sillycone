@@ -913,16 +913,6 @@
   </div>
 </header>
 
-<!-- ══ Local-data migration banner ════════════════════════════════════ -->
-<div id="migration-banner" style="display:none;background:var(--gold-bg);border-bottom:1.5px solid var(--gold);padding:11px 28px;">
-  <div style="max-width:1160px;margin:0 auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-    <span style="font-size:13px;flex:1;min-width:180px;color:var(--text);">
-      📦 Found <strong id="migration-count"></strong> items saved locally — import them to your cloud shelf?
-    </span>
-    <button id="migrate-btn" onclick="migrateLocalData()" style="font-family:inherit;font-size:12.5px;font-weight:600;padding:6px 14px;background:var(--gold);color:#fff;border:none;border-radius:7px;cursor:pointer;">Import to cloud</button>
-    <button onclick="dismissMigration()" style="font-family:inherit;font-size:12.5px;font-weight:500;padding:6px 12px;background:transparent;color:var(--text-muted);border:1.5px solid var(--gold);border-radius:7px;cursor:pointer;">Dismiss</button>
-  </div>
-</div>
 
 <!-- ══ Products page ══════════════════════════════════════════════════ -->
 <div id="tab-products" class="page active">
@@ -2551,21 +2541,6 @@ function updateImagePreview() {
   else { preview.src = ''; preview.style.display = 'none'; }
 }
 
-// ── Local-data migration ─────────────────────────────────────────────
-function checkMigration() {
-  if (localStorage.getItem('shelf_migrated')) return;
-  const counts = [
-    JSON.parse(localStorage.getItem('shelf_products')    || '[]').length,
-    JSON.parse(localStorage.getItem('shelf_services')    || '[]').length,
-    JSON.parse(localStorage.getItem('shelf_experiences') || '[]').length,
-    JSON.parse(localStorage.getItem('shelf_resources')   || '[]').length,
-  ];
-  const total = counts.reduce((a, b) => a + b, 0);
-  if (!total) return;
-  document.getElementById('migration-count').textContent =
-    `${total} item${total !== 1 ? 's' : ''}`;
-  document.getElementById('migration-banner').style.display = 'block';
-}
 
 // ── Display name ─────────────────────────────────────────────────────
 async function loadDisplayName() {
@@ -2639,94 +2614,7 @@ function submitTryForm() {
   closeTryModal();
 }
 
-// ── Migrate localStorage → shared Firestore ──────────────────────────
-async function migrateLocalData() {
-  const btn = document.getElementById('migrate-btn');
-  btn.disabled = true;
-  btn.textContent = 'Importing…';
-  try {
-    const batch = firestore.batch();
-    // Old localStorage products → shared products/ + reviews/
-    (JSON.parse(localStorage.getItem('shelf_products') || '[]')).forEach(item => {
-      const productId = item.id || uid();
-      const productData = {
-        id: productId, name: item.name, brand: item.brand || '',
-        genericBrand: !!item.genericBrand, category: item.category || 'other',
-        link: item.link || '', image: item.image || '',
-        createdAt: item.createdAt || Date.now(),
-        addedBy: currentUser.uid, addedByName: myDisplayName,
-      };
-      batch.set(firestore.collection('products').doc(productId), productData);
-      if (item.source !== 'others' && item.verdict) {
-        const reviewId = productId + '_' + currentUser.uid;
-        const reviewData = {
-          id: reviewId, productId, userId: currentUser.uid, userName: myDisplayName,
-          verdict: item.verdict, pros: item.pros || '', cons: item.cons || '',
-          createdAt: item.createdAt || Date.now(),
-        };
-        batch.set(firestore.collection('reviews').doc(reviewId), reviewData);
-      } else if (item.recommendedBy || item.notes) {
-        batch.set(userCol('productMeta').doc(productId),
-          { recommendedBy: item.recommendedBy || '', discoverNotes: item.notes || '' },
-          { merge: true });
-      }
-    });
-    // Services, experiences, resources remain per-user
-    ['services','experiences','resources'].forEach(colName => {
-      (JSON.parse(localStorage.getItem('shelf_' + colName) || '[]')).forEach(item => {
-        batch.set(userCol(colName).doc(item.id), JSON.parse(JSON.stringify(item)));
-      });
-    });
-    await batch.commit();
-    localStorage.setItem('shelf_migrated', '1');
-    document.getElementById('migration-banner').style.display = 'none';
-  } catch (e) {
-    btn.disabled = false;
-    btn.textContent = 'Import to cloud';
-    alert('Import failed: ' + e.message);
-  }
-}
 
-function dismissMigration() {
-  localStorage.setItem('shelf_migrated', '1');
-  document.getElementById('migration-banner').style.display = 'none';
-}
-
-// ── Silent migration: old users/{uid}/products → shared products/ ────
-async function migrateFirestoreToShared() {
-  try {
-    const oldSnap = await userCol('products').limit(1).get();
-    if (oldSnap.empty) return; // nothing to migrate
-    const allOld = await userCol('products').get();
-    const batch  = firestore.batch();
-    allOld.docs.forEach(doc => {
-      const item      = doc.data();
-      const productId = item.id || doc.id;
-      const productData = {
-        id: productId, name: item.name, brand: item.brand || '',
-        genericBrand: !!item.genericBrand, category: item.category || 'other',
-        link: item.link || '', image: item.image || '',
-        createdAt: item.createdAt || Date.now(),
-        addedBy: currentUser.uid, addedByName: myDisplayName,
-      };
-      batch.set(firestore.collection('products').doc(productId), productData, { merge: true });
-      if (item.source !== 'others' && item.verdict) {
-        const reviewId = productId + '_' + currentUser.uid;
-        batch.set(firestore.collection('reviews').doc(reviewId), {
-          id: reviewId, productId, userId: currentUser.uid, userName: myDisplayName,
-          verdict: item.verdict, pros: item.pros || '', cons: item.cons || '',
-          createdAt: item.createdAt || Date.now(),
-        }, { merge: true });
-      }
-      // Delete from old location
-      batch.delete(userCol('products').doc(productId));
-    });
-    await batch.commit();
-    console.log('[sillycone] Migrated', allOld.size, 'products to shared collection.');
-  } catch (e) {
-    console.warn('[sillycone] migrateFirestoreToShared error:', e.message);
-  }
-}
 
 // ── Firestore real-time listeners ────────────────────────────────────
 let _unsubscribers = [];
@@ -2779,102 +2667,9 @@ async function bootApp() {
   const profBtn = document.getElementById('profile-btn');
   if (profBtn && myDisplayName) profBtn.textContent = '👤 ' + myDisplayName;
   // Await migration so legacy data is in shared collections BEFORE listeners start
-  await migrateFirestoreToShared();
   initListeners();
-  checkMigration();
 }
 
-// ── One-time data claim: re-attribute another UID's data to this account
-// Can be called two ways:
-//   claimDataFrom('OLD_UID')          — re-attributes shared data already in products/ + reviews/
-//   claimDataFrom('OLD_UID', true)    — also reads per-user subcollection (only works if logged in as OLD_UID)
-window.claimDataFrom = async function(oldUID, includePerUser = false) {
-  if (!currentUser) { console.error('[sillycone] Not logged in.'); return; }
-  if (!oldUID) { console.error('[sillycone] Usage: claimDataFrom("OLD_UID")'); return; }
-  const newUID  = currentUser.uid;
-  const newName = myDisplayName;
-  if (oldUID === newUID) { console.warn('[sillycone] Old UID is the same as current — nothing to do.'); return; }
-
-  console.log(`[sillycone] Claiming data from ${oldUID} → ${newUID} (${currentUser.email})`);
-
-  // Batch writes (Firestore limit: 500 ops per batch)
-  const batches  = [];
-  let  curBatch  = firestore.batch();
-  let  opCount   = 0;
-  const op = (fn) => {
-    if (opCount >= 490) { batches.push(curBatch); curBatch = firestore.batch(); opCount = 0; }
-    fn(curBatch); opCount++;
-  };
-
-  // ── 1. Old per-user products/ (direct migration — works if logged in as OLD_UID) ──
-  if (includePerUser) {
-    let oldUserProductsSnap, oldMetaSnap;
-    try {
-      oldUserProductsSnap = await firestore.collection('users').doc(oldUID).collection('products').get();
-      oldMetaSnap         = await firestore.collection('users').doc(oldUID).collection('productMeta').get();
-      console.log(`  Per-user: ${oldUserProductsSnap.size} product(s), ${oldMetaSnap.size} meta doc(s)`);
-    } catch (e) {
-      console.warn(`  Per-user read blocked (${e.code}) — skipping. Log in as the old account first.`);
-      oldUserProductsSnap = { docs: [] };
-      oldMetaSnap         = { docs: [] };
-    }
-
-    oldUserProductsSnap.docs.forEach(doc => {
-      const item = doc.data();
-      const productId = item.id || doc.id;
-      op(b => b.set(firestore.collection('products').doc(productId), {
-        id: productId, name: item.name, brand: item.brand || '',
-        genericBrand: !!item.genericBrand, category: item.category || 'other',
-        link: item.link || '', image: item.image || '',
-        createdAt: item.createdAt || Date.now(),
-        addedBy: newUID, addedByName: newName,
-      }, { merge: true }));
-      if (item.source !== 'others' && item.verdict) {
-        const reviewId = productId + '_' + newUID;
-        op(b => b.set(firestore.collection('reviews').doc(reviewId), {
-          id: reviewId, productId, userId: newUID, userName: newName,
-          verdict: item.verdict, pros: item.pros || '', cons: item.cons || '',
-          createdAt: item.createdAt || Date.now(),
-        }, { merge: true }));
-      }
-      op(b => b.delete(firestore.collection('users').doc(oldUID).collection('products').doc(doc.id)));
-    });
-
-    oldMetaSnap.docs.forEach(doc => {
-      op(b => b.set(userCol('productMeta').doc(doc.id), doc.data(), { merge: true }));
-      op(b => b.delete(firestore.collection('users').doc(oldUID).collection('productMeta').doc(doc.id)));
-    });
-  }
-
-  // ── 2. Shared reviews/ re-attribution ──────────────────────────────
-  const reviewsSnap = await firestore.collection('reviews').where('userId', '==', oldUID).get();
-  console.log(`  Shared reviews: ${reviewsSnap.size}`);
-  reviewsSnap.docs.forEach(doc => {
-    const data  = doc.data();
-    const newId = data.productId + '_' + newUID;
-    op(b => b.set(firestore.collection('reviews').doc(newId),
-      { ...data, id: newId, userId: newUID, userName: newName }));
-    op(b => b.delete(firestore.collection('reviews').doc(doc.id)));
-  });
-
-  // ── 3. Shared products/ addedBy re-attribution ─────────────────────
-  const productsSnap = await firestore.collection('products').where('addedBy', '==', oldUID).get();
-  console.log(`  Shared products: ${productsSnap.size}`);
-  productsSnap.docs.forEach(doc => {
-    op(b => b.update(firestore.collection('products').doc(doc.id),
-      { addedBy: newUID, addedByName: newName }));
-  });
-
-  if (batches.length === 0 && opCount === 0) {
-    console.warn('[sillycone] Nothing found to migrate. Has the per-user data been promoted to shared collections yet? Try logging in as the old account first.');
-    return;
-  }
-
-  batches.push(curBatch);
-  for (const batch of batches) await batch.commit();
-  console.log('[sillycone] ✓ Done! Refreshing…');
-  setTimeout(() => location.reload(), 800);
-};
 
 // ── Boot ─────────────────────────────────────────────────────────────
 initTheme();

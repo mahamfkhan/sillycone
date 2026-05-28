@@ -831,6 +831,70 @@
   </div>
 </div>
 
+<!-- ══ Display-name overlay ════════════════════════════════════════════ -->
+<div id="name-overlay" style="display:none;position:fixed;inset:0;background:#F9FAFA;align-items:center;justify-content:center;z-index:9998;font-family:'Inter',sans-serif;padding:24px;">
+  <div style="background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(58,26,26,.10),0 1px 4px rgba(58,26,26,.06);padding:40px;width:100%;max-width:400px;text-align:center;">
+    <span style="font-size:40px;display:block;margin-bottom:10px;">👋</span>
+    <div style="font-size:19px;font-weight:700;letter-spacing:-.02em;margin-bottom:8px;color:#3A1A1A;">What should we call you?</div>
+    <div style="font-size:13px;color:#9A6055;margin-bottom:24px;line-height:1.5;">Your name will appear on products and reviews you add, so friends can see who recommended what.</div>
+    <input id="dn-input" type="text" placeholder="e.g. Sarah" maxlength="40"
+      style="font-family:inherit;font-size:14px;padding:10px 13px;border:1.5px solid #D4D6DA;border-radius:8px;background:#F9FAFA;color:#3A1A1A;outline:none;width:100%;margin-bottom:14px;transition:border-color .15s;"
+      onfocus="this.style.borderColor='#0047FF'" onblur="this.style.borderColor='#D4D6DA'">
+    <button onclick="submitDisplayName()"
+      style="width:100%;padding:11px;background:#0047FF;color:#fff;border:none;border-radius:8px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s;"
+      onmouseover="this.style.background='#0038CC'" onmouseout="this.style.background='#0047FF'">Let's go →</button>
+  </div>
+</div>
+
+<!-- ══ "I've tried this" modal ═════════════════════════════════════════ -->
+<div class="overlay" id="try-overlay" onclick="onTryOverlayClick(event)">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-head">
+      <h2 class="modal-title">I've tried this!</h2>
+      <button class="modal-close" onclick="closeTryModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="try-product-name" style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:20px;"></p>
+
+      <div class="form-section">
+        <label class="form-label" style="display:block;margin-bottom:9px;">Your verdict<span class="req">*</span></label>
+        <div class="verdict-grid">
+          <div class="verdict-opt love">
+            <input type="radio" name="try-verdict" id="tv-love" value="love">
+            <label for="tv-love"><span class="em">❤️</span>Highly Recommend</label>
+          </div>
+          <div class="verdict-opt meh">
+            <input type="radio" name="try-verdict" id="tv-meh" value="meh">
+            <label for="tv-meh"><span class="em">😐</span>It's okay</label>
+          </div>
+          <div class="verdict-opt pass">
+            <input type="radio" name="try-verdict" id="tv-pass" value="pass">
+            <label for="tv-pass"><span class="em">👎</span>Do Not Recommend</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-group">
+          <label class="form-label" style="color:var(--love);">✓ Pros<span class="opt">(optional)</span></label>
+          <textarea id="try-pros" class="form-textarea" rows="2" placeholder="What did you love about it?"></textarea>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-group">
+          <label class="form-label" style="color:var(--pass);">✗ Cons<span class="opt">(optional)</span></label>
+          <textarea id="try-cons" class="form-textarea" rows="2" placeholder="Any downsides?"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="closeTryModal()">Cancel</button>
+      <button class="btn-save" onclick="submitTryForm()">Save review</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ App Header ══════════════════════════════════════════════════════ -->
 <header class="app-header">
   <div class="header-inner">
@@ -1331,17 +1395,45 @@ function userCol(name) {
   return firestore.collection('users').doc(currentUser.uid).collection(name);
 }
 
-// Saves a document, stripping undefined values that Firestore rejects
+function userDoc() {
+  return firestore.collection('users').doc(currentUser.uid);
+}
+
+// Per-user collections (services, experiences, resources, productMeta)
 function saveDoc(colName, id, data) {
   userCol(colName).doc(id).set(JSON.parse(JSON.stringify(data)));
+}
+
+// Shared top-level collections (products, reviews)
+function saveSharedDoc(col, id, data) {
+  firestore.collection(col).doc(id).set(JSON.parse(JSON.stringify(data)));
+}
+
+// ── Product / review helpers ──────────────────────────────────────────
+function myReviewFor(productId) {
+  return allReviews.find(r => r.productId === productId && r.userId === currentUser.uid);
+}
+function reviewsFor(productId) {
+  return allReviews.filter(r => r.productId === productId);
+}
+function triedList() {
+  const myIds = new Set(allReviews.filter(r => r.userId === currentUser.uid).map(r => r.productId));
+  return allProducts.filter(p => myIds.has(p.id));
+}
+function discoverList() {
+  const myIds = new Set(allReviews.filter(r => r.userId === currentUser.uid).map(r => r.productId));
+  return allProducts.filter(p => !myIds.has(p.id));
 }
 
 // ── Worker URL ───────────────────────────────────────────────────────
 const WORKER_URL = 'https://url-parser.mahamfkhan.workers.dev';
 
-// ── State (populated by Firestore listeners once signed in) ──────────
-let products = [];
-let services = [];
+// ── State ────────────────────────────────────────────────────────────
+let allProducts   = [];  // shared products/ collection
+let allReviews    = [];  // shared reviews/ collection
+let myProductMeta = {};  // users/{uid}/productMeta/ keyed by productId
+let myDisplayName = '';
+let services      = [];
 
 let filter         = 'all';
 let categoryFilter = 'all';
@@ -1582,28 +1674,37 @@ function toggleBookmarkedFilter() {
 }
 
 function toggleBookmark(id) {
-  const p = products.find(x => x.id === id);
-  if (p) { p.bookmarked = !p.bookmarked; saveDoc('products', id, p); render(); }
+  const meta = myProductMeta[id] || {};
+  const next = !meta.bookmarked;
+  userCol('productMeta').doc(id).set({ ...meta, bookmarked: next }, { merge: true });
+  myProductMeta[id] = { ...meta, bookmarked: next };
+  render();
 }
 
 function filtered() {
-  let list = products.filter(p => (p.source || 'mine') === productTab);
+  let list = productTab === 'mine' ? triedList() : discoverList();
 
   if (productTab === 'mine') {
-    if      (filter === 'fame') list = list.filter(p => p.verdict === 'love');
-    else if (filter === 'meh')  list = list.filter(p => p.verdict === 'meh');
-    else if (filter === 'pass') list = list.filter(p => p.verdict === 'pass');
+    if      (filter === 'fame') list = list.filter(p => myReviewFor(p.id)?.verdict === 'love');
+    else if (filter === 'meh')  list = list.filter(p => myReviewFor(p.id)?.verdict === 'meh');
+    else if (filter === 'pass') list = list.filter(p => myReviewFor(p.id)?.verdict === 'pass');
   }
 
   if (productTab === 'others' && showBookmarkedOnly) {
-    list = list.filter(p => p.bookmarked);
+    list = list.filter(p => (myProductMeta[p.id] || {}).bookmarked);
   }
 
   if (categoryFilter !== 'all') list = list.filter(p => p.category === categoryFilter);
 
   list.sort((a, b) => {
-    if (sortBy === 'newest') return b.createdAt - a.createdAt;
-    if (sortBy === 'oldest') return a.createdAt - b.createdAt;
+    const aTime = productTab === 'mine'
+      ? (myReviewFor(a.id)?.reviewedAt || a.createdAt)
+      : a.createdAt;
+    const bTime = productTab === 'mine'
+      ? (myReviewFor(b.id)?.reviewedAt || b.createdAt)
+      : b.createdAt;
+    if (sortBy === 'newest') return bTime - aTime;
+    if (sortBy === 'oldest') return aTime - bTime;
     return 0;
   });
   return list;
@@ -1611,13 +1712,14 @@ function filtered() {
 
 // ── Filter-stat cards ────────────────────────────────────────────────
 function renderFilterStats() {
-  const total = products.length;
-  const love  = products.filter(p => p.verdict === 'love').length;
-  const okay  = products.filter(p => p.verdict === 'meh').length;
-  const pass  = products.filter(p => p.verdict === 'pass').length;
+  const tried = triedList();
+  const total = tried.length;
+  const love  = tried.filter(p => myReviewFor(p.id)?.verdict === 'love').length;
+  const okay  = tried.filter(p => myReviewFor(p.id)?.verdict === 'meh').length;
+  const pass  = tried.filter(p => myReviewFor(p.id)?.verdict === 'pass').length;
 
   const items = [
-    { f: 'all',  icon: '📦', count: total, label: 'On the shelf',      cls: ''       },
+    { f: 'all',  icon: '📦', count: total, label: 'On the shelf',      cls: ''        },
     { f: 'fame', icon: '❤️', count: love,  label: 'Highly Recommend',  cls: 'fs-love' },
     { f: 'meh',  icon: '😐', count: okay,  label: "It's Okay",         cls: 'fs-meh'  },
     { f: 'pass', icon: '👎', count: pass,  label: 'Do Not Recommend',  cls: 'fs-pass' },
@@ -1644,11 +1746,13 @@ function render() {
   if (list.length === 0) {
     grid.innerHTML = `<div class="empty-state">
       <div class="empty-icon">${filter === 'all' ? '🍦' : '🔍'}</div>
-      <h3>${filter === 'all' ? 'Your shelf is empty' : 'Nothing here yet'}</h3>
+      <h3>${filter === 'all' ? (isMinetab ? 'Your shelf is empty' : 'Nothing to discover yet') : 'Nothing here yet'}</h3>
       <p>${filter === 'all'
-        ? 'Start building your baby product hall of fame. Add something you loved — or something you want to warn other parents about.'
+        ? (isMinetab
+            ? 'Start building your baby product hall of fame. Add something you loved — or want to warn others about.'
+            : 'Products added by others in your group will appear here. You can also add things you want to try.')
         : 'No products match this filter. Try a different view or add more products.'}</p>
-      ${filter === 'all' ? `<button class="btn-add" onclick="openModal()" style="margin:0 auto;">
+      ${filter === 'all' && isMinetab ? `<button class="btn-add" onclick="openModal()" style="margin:0 auto;">
         <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
           <path d="M7.5 2v11M2 7.5h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         Add your first product</button>` : ''}
@@ -1656,7 +1760,9 @@ function render() {
     return;
   }
 
-  grid.innerHTML = list.map(cardHTML).join('');
+  grid.innerHTML = list.map(p =>
+    productTab === 'mine' ? triedCardHTML(p, myReviewFor(p.id)) : discoverCardHTML(p)
+  ).join('');
 }
 
 const CLAMP_CHARS = 140; // show "more" if text exceeds this
@@ -1676,19 +1782,68 @@ function toggleCt(id, btn) {
   btn.textContent = nowClamped ? 'more ↓' : 'less ↑';
 }
 
-function cardHTML(p) {
+// ── Tried-by-me card ─────────────────────────────────────────────────
+function triedCardHTML(p, myReview) {
+  if (!myReview) return '';
   const cat    = CATS[p.category] || CATS.other;
-  const isOthers = p.source === 'others';
+  const isFame = myReview.verdict === 'love';
+  const vLabel = { love: '❤️ Highly Recommend', meh: "😐 It's Okay", pass: "👎 Do Not Recommend" }[myReview.verdict] || '';
+  const thumb  = p.image ? `<img class="product-thumb" src="${esc(p.image)}" alt="${esc(p.name)}" onerror="this.style.display='none'">` : '';
+  const prosHTML = myReview.pros
+    ? `<div class="pros"><div class="pros-label">✓ Pros</div>${clampBlock(myReview.pros, p.id, 'pros', 'love')}</div>` : '';
+  const consHTML = myReview.cons
+    ? `<div class="cons"><div class="cons-label">✗ Cons</div>${clampBlock(myReview.cons, p.id, 'cons', 'pass')}</div>`
+    : myReview.pros ? `<div style="display:flex;align-items:center;gap:10px;padding:9px 11px;background:var(--surface-2);border-radius:var(--radius-sm);"><span style="font-size:28px;flex-shrink:0;">🚀</span><span style="font-size:11.5px;color:var(--text-muted);">Nothing negative to say!</span></div>` : '';
+  const otherReviews = reviewsFor(p.id).filter(r => r.userId !== currentUser.uid);
+  const othersLine   = otherReviews.length
+    ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:8px;padding-bottom:4px;">Also tried by: ${otherReviews.map(r => `<span style="color:var(--primary);font-weight:500;">${esc(r.userName)}</span>`).join(', ')}</div>`
+    : '';
+  return `
+  <div class="product-card verdict-${myReview.verdict}${isFame ? ' is-fame' : ''}">
+    <div class="card-body">
+      <div class="product-header">
+        ${thumb}
+        <div class="product-header-text">
+          <div class="cat-date-row">
+            <span class="category-badge ${cat.cls}">${cat.em} ${cat.label}</span>
+            <span class="card-date">${fmtDate(myReview.createdAt)}</span>
+          </div>
+          <div class="product-name">${p.link ? `<a href="${esc(p.link)}" target="_blank" rel="noopener">${esc(p.name)}</a>` : esc(p.name)}</div>
+          ${p.genericBrand ? '' : p.brand ? `<div class="product-brand">by ${esc(p.brand)}</div>` : ''}
+        </div>
+      </div>
+      ${(myReview.pros || myReview.cons) ? `<div class="pros-cons">${prosHTML}${consHTML}</div>` : ''}
+      ${othersLine}
+      <div class="card-footer">
+        <span class="verdict-badge vb-${myReview.verdict}">${vLabel}</span>
+        <div class="card-actions" style="margin-left:auto;">
+          <button class="card-btn" title="Edit review" onclick="openModal('${p.id}')">✏️</button>
+          <button class="card-btn" title="Remove my review" onclick="deleteProduct('${p.id}')">🗑️</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
 
-  if (isOthers) {
-    const bookmarkSVG = p.bookmarked
-      ? `<svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M3 2h8a1 1 0 0 1 1 1v9l-4-2.5L4 12V3a1 1 0 0 1 1-1H3z"/></svg>`
-      : `<svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 2h8a1 1 0 0 1 1 1v9l-4-2.5L4 12V3a1 1 0 0 1 1-1H3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
-    const thumb = p.image
-      ? `<img class="product-thumb" src="${esc(p.image)}" alt="${esc(p.name)}" onerror="this.style.display='none'">`
-      : '';
-    return `
-  <div class="product-card verdict-meh">
+// ── Discover card ────────────────────────────────────────────────────
+function discoverCardHTML(p) {
+  const cat  = CATS[p.category] || CATS.other;
+  const meta = myProductMeta[p.id] || {};
+  const contextReview = reviewsFor(p.id).find(r => r.userId === p.addedBy) || reviewsFor(p.id)[0];
+  const vLabel = contextReview
+    ? { love: '❤️ Highly Recommend', meh: "😐 It's Okay", pass: "👎 Do Not Recommend" }[contextReview.verdict]
+    : null;
+  const thumb = p.image ? `<img class="product-thumb" src="${esc(p.image)}" alt="${esc(p.name)}" onerror="this.style.display='none'">` : '';
+  const bookmarkSVG = meta.bookmarked
+    ? `<svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M3 2h8a1 1 0 0 1 1 1v9l-4-2.5L4 12V3a1 1 0 0 1 1-1H3z"/></svg>`
+    : `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 2h8a1 1 0 0 1 1 1v9l-4-2.5L4 12V3a1 1 0 0 1 1-1H3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
+  const source   = p.addedBy !== currentUser.uid ? p.addedByName : (meta.recommendedBy || null);
+  const canEdit  = p.addedBy === currentUser.uid;
+  const sourceLine = source
+    ? `💌 from ${esc(source)}${vLabel ? ` · <strong>${vLabel}</strong>` : ''}`
+    : (vLabel ? `<strong>${vLabel}</strong>` : '');
+  return `
+  <div class="product-card${contextReview ? ' verdict-' + contextReview.verdict : ''}">
     <div class="card-body">
       <div class="product-header">
         ${thumb}
@@ -1699,55 +1854,17 @@ function cardHTML(p) {
           </div>
           <div class="product-name">${p.link ? `<a href="${esc(p.link)}" target="_blank" rel="noopener">${esc(p.name)}</a>` : esc(p.name)}</div>
           ${p.genericBrand ? '' : p.brand ? `<div class="product-brand">by ${esc(p.brand)}</div>` : ''}
-          ${p.recommendedBy ? `<div class="product-recommender">💌 from ${esc(p.recommendedBy)}</div>` : ''}
+          ${sourceLine ? `<div class="product-recommender">${sourceLine}</div>` : ''}
         </div>
       </div>
-      ${p.notes ? `<div style="font-size:12.5px;color:var(--text-muted);padding:0 16px 12px;line-height:1.55;">${esc(p.notes)}</div>` : ''}
+      ${contextReview?.pros ? `<div style="font-size:12.5px;color:var(--text-muted);padding:0 0 10px;line-height:1.55;">${clampBlock(contextReview.pros, p.id + '_ctx', 'ctxpros', 'love')}</div>` : ''}
+      ${meta.discoverNotes ? `<div style="font-size:12.5px;color:var(--text-muted);padding:0 0 10px;line-height:1.55;font-style:italic;">"${esc(meta.discoverNotes)}"</div>` : ''}
       <div class="card-footer">
-        <button class="bookmark-btn${p.bookmarked ? ' active' : ''}" title="${p.bookmarked ? 'Remove from to-try' : 'Add to to-try'}" onclick="toggleBookmark('${p.id}')">${bookmarkSVG} ${p.bookmarked ? 'To try' : 'Save to try'}</button>
+        <button class="bookmark-btn${meta.bookmarked ? ' active' : ''}" onclick="toggleBookmark('${p.id}')" title="${meta.bookmarked ? 'Remove bookmark' : 'Save to try'}">${bookmarkSVG} ${meta.bookmarked ? 'Saved' : 'Save'}</button>
+        <button onclick="openTryModal('${p.id}')" style="font-family:inherit;font-size:12px;font-weight:600;padding:5px 11px;background:var(--primary);color:#fff;border:none;border-radius:6px;cursor:pointer;flex-shrink:0;transition:background .15s;" onmouseover="this.style.background='var(--primary-hover)'" onmouseout="this.style.background='var(--primary)'">✓ I've tried this</button>
         <div class="card-actions" style="margin-left:auto;">
-          <button class="card-btn" title="Edit"   onclick="openModal('${p.id}')">✏️</button>
-          <button class="card-btn" title="Delete" onclick="deleteProduct('${p.id}')">🗑️</button>
-        </div>
-      </div>
-    </div>
-  </div>`;
-  }
-
-  // "mine" tab card — original layout
-  const isFame = p.verdict === 'love';
-  const vLabel = { love: '❤️ Highly Recommend', meh: "😐 It's Okay", pass: "👎 Do Not Recommend" }[p.verdict];
-
-  const prosHTML = p.pros ? `<div class="pros"><div class="pros-label">✓ Pros</div>${clampBlock(p.pros, p.id, 'pros', 'love')}</div>` : '';
-  const consHTML = p.cons
-    ? `<div class="cons"><div class="cons-label">✗ Cons</div>${clampBlock(p.cons, p.id, 'cons', 'pass')}</div>`
-    : p.pros ? `<div style="display:flex;align-items:center;gap:10px;padding:9px 11px;background:var(--surface-2);border-radius:var(--radius-sm);"><span style="font-size:28px;flex-shrink:0;">🚀</span><span style="font-size:11.5px;color:var(--text-muted);">Nothing negative to say here!</span></div>` : '';
-
-  const thumb = p.image
-    ? `<img class="product-thumb" src="${esc(p.image)}" alt="${esc(p.name)}" onerror="this.style.display='none'">`
-    : '';
-
-  return `
-  <div class="product-card verdict-${p.verdict}${isFame ? ' is-fame' : ''}">
-    <div class="card-body">
-      <div class="product-header">
-        ${thumb}
-        <div class="product-header-text">
-          <div class="cat-date-row">
-            <span class="category-badge ${cat.cls}">${cat.em} ${cat.label}</span>
-            <span class="card-date">${fmtDate(p.createdAt)}</span>
-          </div>
-          <div class="product-name">${p.link ? `<a href="${esc(p.link)}" target="_blank" rel="noopener">${esc(p.name)}</a>` : esc(p.name)}</div>
-          ${p.genericBrand ? '' : `<div class="product-brand">by ${esc(p.brand)}</div>`}
-          ${p.recommendedBy ? `<div class="product-recommender">💌 Recommended by ${esc(p.recommendedBy)}</div>` : ''}
-        </div>
-      </div>
-      ${(p.pros || p.cons) ? `<div class="pros-cons">${prosHTML}${consHTML}</div>` : ''}
-      <div class="card-footer">
-        <span class="verdict-badge vb-${p.verdict}">${vLabel}</span>
-        <div class="card-actions" style="margin-left:auto;">
-          <button class="card-btn" title="Edit"   onclick="openModal('${p.id}')">✏️</button>
-          <button class="card-btn" title="Delete" onclick="deleteProduct('${p.id}')">🗑️</button>
+          ${canEdit ? `<button class="card-btn" title="Edit" onclick="openModal('${p.id}')">✏️</button>` : ''}
+          ${canEdit ? `<button class="card-btn" title="Delete for everyone" onclick="deleteProduct('${p.id}')">🗑️</button>` : ''}
         </div>
       </div>
     </div>
@@ -1757,44 +1874,44 @@ function cardHTML(p) {
 // ── Modal ────────────────────────────────────────────────────────────
 function openModal(id) {
   editingId = id || null;
-  document.getElementById('modal-title').textContent = id ? 'Edit Product' : 'Add a Product';
-
   clearForm();
 
   if (id) {
-    const p = products.find(x => x.id === id);
+    const p        = allProducts.find(x => x.id === id);
+    const myReview = myReviewFor(id);
+    const meta     = myProductMeta[id] || {};
     if (p) {
       document.getElementById('f-name').value     = p.name;
-      document.getElementById('f-brand').value    = p.brand;
+      document.getElementById('f-brand').value    = p.brand || '';
       document.getElementById('f-category').value = p.category;
-      document.getElementById('f-pros').value     = p.pros  || '';
-      document.getElementById('f-cons').value     = p.cons  || '';
       document.getElementById('f-link').value     = p.link  || '';
-      document.getElementById('f-image').value       = p.image || '';
+      document.getElementById('f-image').value    = p.image || '';
       if (p.image) updateImagePreview();
-      document.getElementById('f-id').value          = p.id;
-      document.getElementById('f-generic-brand').checked = !!p.genericBrand;
-      document.getElementById('f-brand').style.display = p.genericBrand ? 'none' : '';
-      document.getElementById('f-recommended-by').value = p.recommendedBy || '';
-      document.getElementById('f-notes').value          = p.notes || '';
-
-      const vEl = document.getElementById('v-' + p.verdict);
-      if (vEl) vEl.checked = true;
-
-      restoreTagsFromText(p.cons || '');
+      document.getElementById('f-id').value       = p.id;
+      document.getElementById('f-generic-brand').checked   = !!p.genericBrand;
+      document.getElementById('f-brand').style.display     = p.genericBrand ? 'none' : '';
     }
+    if (myReview) {
+      document.getElementById('f-pros').value = myReview.pros || '';
+      document.getElementById('f-cons').value = myReview.cons || '';
+      const vEl = document.getElementById('v-' + myReview.verdict);
+      if (vEl) vEl.checked = true;
+      restoreTagsFromText(myReview.cons || '');
+    }
+    document.getElementById('f-recommended-by').value = meta.recommendedBy || '';
+    document.getElementById('f-notes').value           = meta.discoverNotes || '';
   }
 
-  // Populate recommenders datalist from saved products
-  const names = [...new Set(products.map(p => p.recommendedBy).filter(Boolean))];
+  // Populate recommenders datalist (display names of all users who added products)
+  const names = [...new Set(allProducts.map(p => p.addedByName).filter(Boolean))];
   const dl = document.getElementById('recommenders-list');
   dl.innerHTML = names.map(n => `<option value="${n}">`).join('');
 
-  // Show/hide form sections based on source
-  const isOthers = (editingId ? (products.find(x => x.id === editingId)?.source || 'mine') : productTab) === 'others';
-  document.getElementById('f-section-verdict').style.display      = isOthers ? 'none' : '';
-  document.getElementById('f-section-pros').style.display         = isOthers ? 'none' : '';
-  document.getElementById('f-section-cons').style.display         = isOthers ? 'none' : '';
+  // Show/hide form sections: discover tab shows recommended-by/notes, tried tab shows verdict/pros/cons
+  const isOthers = editingId ? !myReviewFor(editingId) : productTab === 'others';
+  document.getElementById('f-section-verdict').style.display        = isOthers ? 'none' : '';
+  document.getElementById('f-section-pros').style.display           = isOthers ? 'none' : '';
+  document.getElementById('f-section-cons').style.display           = isOthers ? 'none' : '';
   document.getElementById('f-section-recommended-by').style.display = isOthers ? '' : 'none';
   document.getElementById('f-section-notes').style.display          = isOthers ? '' : 'none';
   document.getElementById('modal-title').textContent = editingId
@@ -1830,53 +1947,60 @@ function clearForm() {
 
 // ── Submit ───────────────────────────────────────────────────────────
 function submitForm() {
-  const name        = document.getElementById('f-name').value.trim();
+  const name         = document.getElementById('f-name').value.trim();
   const genericBrand = document.getElementById('f-generic-brand').checked;
-  const brand       = genericBrand ? '' : document.getElementById('f-brand').value.trim();
-  const category    = document.getElementById('f-category').value;
-  const verdict     = document.querySelector('input[name="verdict"]:checked')?.value;
+  const brand        = genericBrand ? '' : document.getElementById('f-brand').value.trim();
+  const category     = document.getElementById('f-category').value;
+  const verdict      = document.querySelector('input[name="verdict"]:checked')?.value;
+  const link         = document.getElementById('f-link').value.trim();
+  const image        = document.getElementById('f-image').value.trim();
+  const pros         = document.getElementById('f-pros').value.trim();
+  const cons         = document.getElementById('f-cons').value.trim();
+  const recommendedBy = document.getElementById('f-recommended-by').value.trim();
+  const discoverNotes = document.getElementById('f-notes').value.trim();
 
-  const isOthers = editingId
-    ? (products.find(x => x.id === editingId)?.source || 'mine') === 'others'
-    : productTab === 'others';
+  // Discover tab = no review yet; Tried tab = has/adding review
+  const isOthers = editingId ? !myReviewFor(editingId) : productTab === 'others';
 
   const missing = [];
-  if (!name)              missing.push('product name');
+  if (!name)                               missing.push('product name');
   if (!isOthers && !genericBrand && !brand) missing.push('brand');
-  if (!category)          missing.push('category');
-  if (!isOthers && !verdict) missing.push('verdict');
+  if (!category)                           missing.push('category');
+  if (!isOthers && !verdict)               missing.push('verdict');
+  if (missing.length) { alert('Please fill in: ' + missing.join(', ') + '.'); return; }
 
-  if (missing.length) {
-    alert('Please fill in: ' + missing.join(', ') + '.');
-    return;
+  const productId = editingId || uid();
+  const now       = Date.now();
+
+  // ── Shared product document ──────────────────────────────────────────
+  const existingProduct = allProducts.find(p => p.id === productId);
+  if (!editingId || !existingProduct) {
+    // New product — write to shared products/ collection
+    const productData = {
+      id: productId, name, brand, genericBrand, category, link, image,
+      createdAt: now, addedBy: currentUser.uid, addedByName: myDisplayName,
+    };
+    saveSharedDoc('products', productId, productData);
+  } else if (existingProduct.addedBy === currentUser.uid) {
+    // Only the original adder may edit the shared product core fields
+    const productData = { ...existingProduct, name, brand, genericBrand, category, link, image };
+    saveSharedDoc('products', productId, productData);
   }
 
-  const data = {
-    name,
-    brand:    isOthers ? '' : brand,
-    category, verdict: isOthers ? undefined : verdict,
-    genericBrand: isOthers ? false : genericBrand,
-    source:   isOthers ? 'others' : 'mine',
-    recommendedBy: isOthers ? document.getElementById('f-recommended-by').value.trim() : '',
-    notes: isOthers ? document.getElementById('f-notes').value.trim() : '',
-    pros:  isOthers ? '' : document.getElementById('f-pros').value.trim(),
-    cons:  isOthers ? '' : document.getElementById('f-cons').value.trim(),
-    link:  document.getElementById('f-link').value.trim(),
-    image: document.getElementById('f-image').value.trim(),
-  };
+  // ── Review document (tried-by-me) ───────────────────────────────────
+  if (!isOthers) {
+    const reviewId   = productId + '_' + currentUser.uid;
+    const reviewData = {
+      id: reviewId, productId, userId: currentUser.uid, userName: myDisplayName,
+      verdict, pros, cons, createdAt: now,
+    };
+    saveSharedDoc('reviews', reviewId, reviewData);
+  }
 
-  if (editingId) {
-    const idx = products.findIndex(p => p.id === editingId);
-    if (idx !== -1) {
-      products[idx] = { ...products[idx], ...data };
-      saveDoc('products', editingId, products[idx]);
-    }
-  } else {
-    data.id        = uid();
-    data.createdAt = Date.now();
-    data.bookmarked = false;
-    products.unshift(data);
-    saveDoc('products', data.id, data);
+  // ── Per-user meta (discover notes, bookmarks) ───────────────────────
+  if (isOthers) {
+    const meta = myProductMeta[productId] || {};
+    userCol('productMeta').doc(productId).set({ ...meta, recommendedBy, discoverNotes }, { merge: true });
   }
 
   closeModal();
@@ -1885,10 +2009,25 @@ function submitForm() {
 
 // ── Delete ───────────────────────────────────────────────────────────
 function deleteProduct(id) {
-  if (!confirm('Remove this product from your shelf?')) return;
-  userCol('products').doc(id).delete();
-  products = products.filter(p => p.id !== id);
-  render();
+  const myReview = myReviewFor(id);
+  if (myReview) {
+    // "Tried by me" tab — remove my review (un-tries the product, moves to Discover)
+    if (!confirm('Remove your review? This will move the product back to Discover.')) return;
+    const reviewId = id + '_' + currentUser.uid;
+    firestore.collection('reviews').doc(reviewId).delete();
+  } else {
+    // "Discover" tab — only allow removing the shared product if you added it
+    const p = allProducts.find(x => x.id === id);
+    if (!p) return;
+    if (p.addedBy !== currentUser.uid) {
+      alert('Only the person who added this product can remove it.');
+      return;
+    }
+    if (!confirm('Remove this product for everyone? This cannot be undone.')) return;
+    firestore.collection('products').doc(id).delete();
+  }
+  // Also clean up per-user meta
+  userCol('productMeta').doc(id).delete().catch(() => {});
 }
 
 // ── Utils ────────────────────────────────────────────────────────────
@@ -1908,8 +2047,12 @@ function fmtDate(ts) {
 
 // ── Keyboard ─────────────────────────────────────────────────────────
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { closeModal(); closeServiceModal(); closeExpModal(); closeResourceModal(); }
-  if (e.key === 'Enter'  && document.getElementById('auth-overlay').style.display !== 'none') submitAuth();
+  if (e.key === 'Escape') {
+    closeModal(); closeServiceModal(); closeExpModal(); closeResourceModal();
+    if (document.getElementById('try-overlay')?.classList.contains('open')) closeTryModal();
+  }
+  if (e.key === 'Enter' && document.getElementById('auth-overlay').style.display !== 'none') submitAuth();
+  if (e.key === 'Enter' && document.getElementById('name-overlay')?.style.display !== 'none') submitDisplayName();
 });
 
 // ══ Services ══════════════════════════════════════════════════════════
@@ -2422,21 +2565,116 @@ function checkMigration() {
   document.getElementById('migration-banner').style.display = 'block';
 }
 
+// ── Display name ─────────────────────────────────────────────────────
+async function loadDisplayName() {
+  const snap = await userDoc().get();
+  return snap.exists ? (snap.data().displayName || '') : '';
+}
+
+function saveDisplayName(name) {
+  return userDoc().set({ displayName: name }, { merge: true });
+}
+
+function submitDisplayName() {
+  const input = document.getElementById('dn-input');
+  const name  = (input ? input.value : '').trim();
+  if (!name) { alert('Please enter a display name.'); return; }
+  saveDisplayName(name).then(() => {
+    myDisplayName = name;
+    document.getElementById('name-overlay').style.display = 'none';
+    bootApp();
+  }).catch(e => alert('Could not save name: ' + e.message));
+}
+
+// ── "I've tried this" modal ──────────────────────────────────────────
+let tryingProductId = null;
+
+function openTryModal(productId) {
+  tryingProductId = productId;
+  // Pre-fill product name for context
+  const p = allProducts.find(x => x.id === productId);
+  const el = document.getElementById('try-product-name');
+  if (el && p) el.textContent = p.name;
+  document.getElementById('try-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => {
+    const vFirst = document.querySelector('input[name="try-verdict"]');
+    if (vFirst) vFirst.focus();
+  }, 80);
+}
+
+function closeTryModal() {
+  document.getElementById('try-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  tryingProductId = null;
+  // Reset form
+  document.querySelectorAll('input[name="try-verdict"]').forEach(el => el.checked = false);
+  ['try-pros','try-cons'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+}
+
+function onTryOverlayClick(e) {
+  if (e.target === document.getElementById('try-overlay')) closeTryModal();
+}
+
+function submitTryForm() {
+  const verdict = document.querySelector('input[name="try-verdict"]:checked')?.value;
+  if (!verdict) { alert('Please pick a verdict.'); return; }
+  const pros = (document.getElementById('try-pros')?.value || '').trim();
+  const cons = (document.getElementById('try-cons')?.value || '').trim();
+  const now  = Date.now();
+  const reviewId   = tryingProductId + '_' + currentUser.uid;
+  const reviewData = {
+    id: reviewId, productId: tryingProductId,
+    userId: currentUser.uid, userName: myDisplayName,
+    verdict, pros, cons, createdAt: now,
+  };
+  saveSharedDoc('reviews', reviewId, reviewData);
+  // Remove bookmark meta now that they've tried it
+  const meta = myProductMeta[tryingProductId] || {};
+  if (meta.bookmarked) {
+    userCol('productMeta').doc(tryingProductId).set({ ...meta, bookmarked: false }, { merge: true });
+  }
+  closeTryModal();
+}
+
+// ── Migrate localStorage → shared Firestore ──────────────────────────
 async function migrateLocalData() {
   const btn = document.getElementById('migrate-btn');
   btn.disabled = true;
   btn.textContent = 'Importing…';
   try {
     const batch = firestore.batch();
-    const add = (colName, key) => {
-      JSON.parse(localStorage.getItem(key) || '[]').forEach(item => {
+    // Old localStorage products → shared products/ + reviews/
+    (JSON.parse(localStorage.getItem('shelf_products') || '[]')).forEach(item => {
+      const productId = item.id || uid();
+      const productData = {
+        id: productId, name: item.name, brand: item.brand || '',
+        genericBrand: !!item.genericBrand, category: item.category || 'other',
+        link: item.link || '', image: item.image || '',
+        createdAt: item.createdAt || Date.now(),
+        addedBy: currentUser.uid, addedByName: myDisplayName,
+      };
+      batch.set(firestore.collection('products').doc(productId), productData);
+      if (item.source !== 'others' && item.verdict) {
+        const reviewId = productId + '_' + currentUser.uid;
+        const reviewData = {
+          id: reviewId, productId, userId: currentUser.uid, userName: myDisplayName,
+          verdict: item.verdict, pros: item.pros || '', cons: item.cons || '',
+          createdAt: item.createdAt || Date.now(),
+        };
+        batch.set(firestore.collection('reviews').doc(reviewId), reviewData);
+      } else if (item.recommendedBy || item.notes) {
+        batch.set(userCol('productMeta').doc(productId),
+          { recommendedBy: item.recommendedBy || '', discoverNotes: item.notes || '' },
+          { merge: true });
+      }
+    });
+    // Services, experiences, resources remain per-user
+    ['services','experiences','resources'].forEach(colName => {
+      (JSON.parse(localStorage.getItem('shelf_' + colName) || '[]')).forEach(item => {
         batch.set(userCol(colName).doc(item.id), JSON.parse(JSON.stringify(item)));
       });
-    };
-    add('products',    'shelf_products');
-    add('services',    'shelf_services');
-    add('experiences', 'shelf_experiences');
-    add('resources',   'shelf_resources');
+    });
     await batch.commit();
     localStorage.setItem('shelf_migrated', '1');
     document.getElementById('migration-banner').style.display = 'none';
@@ -2452,40 +2690,118 @@ function dismissMigration() {
   document.getElementById('migration-banner').style.display = 'none';
 }
 
+// ── Silent migration: old users/{uid}/products → shared products/ ────
+async function migrateFirestoreToShared() {
+  try {
+    const oldSnap = await userCol('products').limit(1).get();
+    if (oldSnap.empty) return; // nothing to migrate
+    const allOld = await userCol('products').get();
+    const batch  = firestore.batch();
+    allOld.docs.forEach(doc => {
+      const item      = doc.data();
+      const productId = item.id || doc.id;
+      const productData = {
+        id: productId, name: item.name, brand: item.brand || '',
+        genericBrand: !!item.genericBrand, category: item.category || 'other',
+        link: item.link || '', image: item.image || '',
+        createdAt: item.createdAt || Date.now(),
+        addedBy: currentUser.uid, addedByName: myDisplayName,
+      };
+      batch.set(firestore.collection('products').doc(productId), productData, { merge: true });
+      if (item.source !== 'others' && item.verdict) {
+        const reviewId = productId + '_' + currentUser.uid;
+        batch.set(firestore.collection('reviews').doc(reviewId), {
+          id: reviewId, productId, userId: currentUser.uid, userName: myDisplayName,
+          verdict: item.verdict, pros: item.pros || '', cons: item.cons || '',
+          createdAt: item.createdAt || Date.now(),
+        }, { merge: true });
+      }
+      // Delete from old location
+      batch.delete(userCol('products').doc(productId));
+    });
+    await batch.commit();
+    console.log('[sillycone] Migrated', allOld.size, 'products to shared collection.');
+  } catch (e) {
+    console.warn('[sillycone] migrateFirestoreToShared error:', e.message);
+  }
+}
+
 // ── Firestore real-time listeners ────────────────────────────────────
+let _unsubscribers = [];
+
 function initListeners() {
-  userCol('products').onSnapshot(snap => {
-    products = snap.docs.map(d => d.data());
-    render();
-  });
-  userCol('services').onSnapshot(snap => {
-    services = snap.docs.map(d => d.data());
-    renderServices();
-  });
-  userCol('experiences').onSnapshot(snap => {
-    experiences = snap.docs.map(d => d.data());
-    renderExperiences();
-  });
-  userCol('resources').onSnapshot(snap => {
-    resources = snap.docs.map(d => d.data());
-    renderResources();
-  });
+  _unsubscribers.forEach(fn => fn());
+  _unsubscribers = [];
+
+  _unsubscribers.push(
+    firestore.collection('products').onSnapshot(snap => {
+      allProducts = snap.docs.map(d => d.data());
+      render();
+    })
+  );
+  _unsubscribers.push(
+    firestore.collection('reviews').onSnapshot(snap => {
+      allReviews = snap.docs.map(d => d.data());
+      render();
+    })
+  );
+  _unsubscribers.push(
+    userCol('productMeta').onSnapshot(snap => {
+      myProductMeta = {};
+      snap.docs.forEach(d => { myProductMeta[d.id] = d.data(); });
+      render();
+    })
+  );
+  _unsubscribers.push(
+    userCol('services').onSnapshot(snap => {
+      services = snap.docs.map(d => d.data());
+      renderServices();
+    })
+  );
+  _unsubscribers.push(
+    userCol('experiences').onSnapshot(snap => {
+      experiences = snap.docs.map(d => d.data());
+      renderExperiences();
+    })
+  );
+  _unsubscribers.push(
+    userCol('resources').onSnapshot(snap => {
+      resources = snap.docs.map(d => d.data());
+      renderResources();
+    })
+  );
+}
+
+// ── bootApp: called once display name is confirmed ────────────────────
+function bootApp() {
+  migrateFirestoreToShared(); // silent, no-op if already done
+  initListeners();
+  checkMigration();
 }
 
 // ── Boot ─────────────────────────────────────────────────────────────
 initTheme();
 buildQuickTags();
 
-firebase.auth().onAuthStateChanged(user => {
+firebase.auth().onAuthStateChanged(async user => {
   if (!user) {
-    // Tear down any active listeners and show the login overlay
+    _unsubscribers.forEach(fn => fn());
+    _unsubscribers = [];
     document.getElementById('auth-overlay').style.display = 'flex';
     return;
   }
   currentUser = user;
   document.getElementById('auth-overlay').style.display = 'none';
-  initListeners();
-  checkMigration();
+
+  // Load or prompt for display name
+  const savedName = await loadDisplayName();
+  if (!savedName) {
+    // Show display-name overlay
+    document.getElementById('name-overlay').style.display = 'flex';
+  } else {
+    myDisplayName = savedName;
+    bootApp();
+  }
 });
 
 </script>

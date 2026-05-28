@@ -811,6 +811,10 @@
     justify-content: flex-end;
   }
 
+  /* ── Mobile tab select + hamburger (hidden on desktop) ─────── */
+  .mobile-tab-select { display: none; }
+  .mobile-menu-wrap  { display: none; }
+
   /* ── Responsive ─────────────────────────────────────────── */
 
   /* Tablet */
@@ -822,32 +826,88 @@
 
   /* Mobile */
   @media (max-width: 600px) {
-    /* Header: brand + actions on row 1, tabs on row 2 */
     .app-header { padding: 0 16px; }
-    .header-inner {
-      height: auto;
-      flex-wrap: wrap;
-      padding: 10px 0 0;
-      gap: 0;
-      align-items: center;
+    .header-inner { height: 54px; gap: 10px; }
+
+    /* Hide desktop nav + actions */
+    .main-tabs    { display: none; }
+    .header-actions { display: none; }
+
+    /* Tab dropdown */
+    .mobile-tab-select {
+      display: block;
+      flex: 1;
+      font-family: inherit;
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--primary);
+      background: var(--primary-light);
+      border: 1.5px solid var(--primary);
+      border-radius: var(--radius-sm);
+      padding: 6px 10px;
+      cursor: pointer;
+      outline: none;
+      min-width: 0;
     }
-    .brand { flex: 1; }
-    .header-actions { margin-left: 0; gap: 6px; }
-    .header-btn { font-size: 11.5px; padding: 5px 10px; }
-    .profile-name { display: none; } /* show just 👤 on mobile */
-    .main-tabs {
-      order: 10;
+
+    /* Hamburger button + dropdown */
+    .mobile-menu-wrap {
+      display: block;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .mobile-menu-btn {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 4px;
+      width: 36px;
+      height: 36px;
+      padding: 8px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: transparent;
+      cursor: pointer;
+    }
+    .mobile-menu-btn span {
+      display: block;
+      height: 2px;
+      background: var(--text-muted);
+      border-radius: 2px;
+      transition: background .15s;
+    }
+    .mobile-menu-btn:hover span { background: var(--text); }
+    .mobile-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow-md);
+      z-index: 300;
+      min-width: 160px;
+      padding: 5px;
+    }
+    .mobile-menu.open { display: block; }
+    .mobile-menu-item {
+      display: block;
       width: 100%;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-      padding: 6px 0 0;
-      gap: 2px;
-      border-top: 1px solid var(--border);
-      margin-top: 8px;
+      text-align: left;
+      font-family: inherit;
+      font-size: 13.5px;
+      padding: 10px 14px;
+      border: none;
+      border-radius: 6px;
+      background: none;
+      color: var(--text);
+      cursor: pointer;
+      transition: background .12s;
     }
-    .main-tabs::-webkit-scrollbar { display: none; }
-    .main-tab { font-size: 12.5px; padding: 8px 14px; white-space: nowrap; }
+    .mobile-menu-item:hover { background: var(--surface-2); }
+    .mobile-menu-item--danger { color: var(--pass); }
+    .mobile-menu-item--danger:hover { background: var(--pass-bg); }
 
     /* Pages */
     .page { padding: 20px 16px; }
@@ -865,7 +925,7 @@
     .fstat { min-width: calc(50% - 4px); flex: 1 1 calc(50% - 4px); }
     .fstat-count { font-size: 18px; }
 
-    /* Modal: full-screen on mobile */
+    /* Modal: slide up as bottom sheet */
     .overlay { align-items: flex-end; padding: 0; }
     .modal {
       border-radius: var(--radius) var(--radius) 0 0;
@@ -1004,6 +1064,23 @@
     <div class="header-actions">
       <button id="profile-btn" onclick="openProfileModal()" class="header-btn">👤 <span class="profile-name">Profile</span></button>
       <button onclick="logout()" class="header-btn">Sign out</button>
+    </div>
+
+    <!-- Mobile-only controls -->
+    <select class="mobile-tab-select" id="mobile-tab-select" onchange="switchMobileTab(this.value)">
+      <option value="products">Products</option>
+      <option value="services">Services</option>
+      <option value="experiences">Experiences</option>
+      <option value="resources">Resources</option>
+    </select>
+    <div class="mobile-menu-wrap">
+      <button class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="mobile-menu" id="mobile-menu">
+        <button onclick="openProfileModal();closeMobileMenu()" class="mobile-menu-item">👤 Profile</button>
+        <button onclick="logout()" class="mobile-menu-item mobile-menu-item--danger">Sign out</button>
+      </div>
     </div>
   </div>
 </header>
@@ -1693,13 +1770,34 @@ function initTheme() {
 }
 
 // ── Tab switching ────────────────────────────────────────────────────
+function switchTab(tabName) {
+  document.querySelectorAll('.main-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tabName));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + tabName).classList.add('active');
+  const sel = document.getElementById('mobile-tab-select');
+  if (sel) sel.value = tabName;
+}
+
 document.querySelectorAll('.main-tab').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-  });
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+function switchMobileTab(tabName) {
+  switchTab(tabName);
+}
+
+function toggleMobileMenu() {
+  document.getElementById('mobile-menu').classList.toggle('open');
+}
+
+function closeMobileMenu() {
+  document.getElementById('mobile-menu').classList.remove('open');
+}
+
+// Close mobile menu when tapping outside
+document.addEventListener('click', e => {
+  const wrap = document.querySelector('.mobile-menu-wrap');
+  if (wrap && !wrap.contains(e.target)) closeMobileMenu();
 });
 
 // ── Filter & sort ────────────────────────────────────────────────────

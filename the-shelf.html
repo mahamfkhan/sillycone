@@ -2711,12 +2711,23 @@ async function migrateFirestoreToShared() {
       };
       batch.set(firestore.collection('products').doc(productId), productData, { merge: true });
       if (item.source !== 'others' && item.verdict) {
+        // "Tried by me" item → write a review
         const reviewId = productId + '_' + currentUser.uid;
         batch.set(firestore.collection('reviews').doc(reviewId), {
           id: reviewId, productId, userId: currentUser.uid, userName: myDisplayName,
           verdict: item.verdict, pros: item.pros || '', cons: item.cons || '',
           createdAt: item.createdAt || Date.now(),
         }, { merge: true });
+      } else {
+        // "Discover" item → preserve recommendedBy, notes, bookmarked in productMeta
+        const hasMeta = item.recommendedBy || item.notes || item.bookmarked;
+        if (hasMeta) {
+          batch.set(userCol('productMeta').doc(productId), {
+            recommendedBy: item.recommendedBy || '',
+            discoverNotes: item.notes || '',
+            bookmarked:    !!item.bookmarked,
+          }, { merge: true });
+        }
       }
       // Delete from old location
       batch.delete(userCol('products').doc(productId));

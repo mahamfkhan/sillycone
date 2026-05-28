@@ -2729,8 +2729,8 @@ async function migrateFirestoreToShared() {
           }, { merge: true });
         }
       }
-      // Delete from old location
-      batch.delete(userCol('products').doc(productId));
+      // NOTE: old documents are intentionally left in place.
+      // Clean up users/{uid}/products manually once you've verified the migration.
     });
     await batch.commit();
     console.log('[sillycone] Migrated', allOld.size, 'products to shared collection.');

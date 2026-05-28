@@ -819,6 +819,17 @@
   </div>
 </header>
 
+<!-- ══ Local-data migration banner ════════════════════════════════════ -->
+<div id="migration-banner" style="display:none;background:var(--gold-bg);border-bottom:1.5px solid var(--gold);padding:11px 28px;">
+  <div style="max-width:1160px;margin:0 auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    <span style="font-size:13px;flex:1;min-width:180px;color:var(--text);">
+      📦 Found <strong id="migration-count"></strong> items saved locally — import them to your cloud shelf?
+    </span>
+    <button id="migrate-btn" onclick="migrateLocalData()" style="font-family:inherit;font-size:12.5px;font-weight:600;padding:6px 14px;background:var(--gold);color:#fff;border:none;border-radius:7px;cursor:pointer;">Import to cloud</button>
+    <button onclick="dismissMigration()" style="font-family:inherit;font-size:12.5px;font-weight:500;padding:6px 12px;background:transparent;color:var(--text-muted);border:1.5px solid var(--gold);border-radius:7px;cursor:pointer;">Dismiss</button>
+  </div>
+</div>
+
 <!-- ══ Products page ══════════════════════════════════════════════════ -->
 <div id="tab-products" class="page active">
   <div class="page-header">
@@ -2310,6 +2321,52 @@ function updateImagePreview() {
   else { preview.src = ''; preview.style.display = 'none'; }
 }
 
+// ── Local-data migration ─────────────────────────────────────────────
+function checkMigration() {
+  if (localStorage.getItem('shelf_migrated')) return;
+  const counts = [
+    JSON.parse(localStorage.getItem('shelf_products')    || '[]').length,
+    JSON.parse(localStorage.getItem('shelf_services')    || '[]').length,
+    JSON.parse(localStorage.getItem('shelf_experiences') || '[]').length,
+    JSON.parse(localStorage.getItem('shelf_resources')   || '[]').length,
+  ];
+  const total = counts.reduce((a, b) => a + b, 0);
+  if (!total) return;
+  document.getElementById('migration-count').textContent =
+    `${total} item${total !== 1 ? 's' : ''}`;
+  document.getElementById('migration-banner').style.display = 'block';
+}
+
+async function migrateLocalData() {
+  const btn = document.getElementById('migrate-btn');
+  btn.disabled = true;
+  btn.textContent = 'Importing…';
+  try {
+    const batch = firestore.batch();
+    const add = (colName, key) => {
+      JSON.parse(localStorage.getItem(key) || '[]').forEach(item => {
+        batch.set(userCol(colName).doc(item.id), JSON.parse(JSON.stringify(item)));
+      });
+    };
+    add('products',    'shelf_products');
+    add('services',    'shelf_services');
+    add('experiences', 'shelf_experiences');
+    add('resources',   'shelf_resources');
+    await batch.commit();
+    localStorage.setItem('shelf_migrated', '1');
+    document.getElementById('migration-banner').style.display = 'none';
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = 'Import to cloud';
+    alert('Import failed: ' + e.message);
+  }
+}
+
+function dismissMigration() {
+  localStorage.setItem('shelf_migrated', '1');
+  document.getElementById('migration-banner').style.display = 'none';
+}
+
 // ── Firestore real-time listeners ────────────────────────────────────
 function initListeners() {
   userCol('products').onSnapshot(snap => {
@@ -2337,6 +2394,7 @@ firebase.auth().onAuthStateChanged(user => {
   initTheme();
   buildQuickTags();
   initListeners();
+  checkMigration();
   document.getElementById('loading-overlay').style.display = 'none';
 });
 </script>

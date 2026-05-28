@@ -908,6 +908,7 @@
       <button class="main-tab" data-tab="experiences">Experiences</button>
       <button class="main-tab" data-tab="resources">Resources</button>
     </nav>
+    <button id="profile-btn" onclick="openProfileModal()" style="font-family:inherit;font-size:12.5px;font-weight:500;padding:6px 13px;border:1.5px solid var(--border);border-radius:7px;background:transparent;color:var(--text-muted);cursor:pointer;flex-shrink:0;transition:border-color .15s,color .15s;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" onmouseover="this.style.borderColor='var(--text-muted)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">👤 Profile</button>
     <button onclick="logout()" style="font-family:inherit;font-size:12.5px;font-weight:500;padding:6px 13px;border:1.5px solid var(--border);border-radius:7px;background:transparent;color:var(--text-muted);cursor:pointer;flex-shrink:0;transition:border-color .15s,color .15s;" onmouseover="this.style.borderColor='var(--text-muted)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">Sign out</button>
   </div>
 </header>
@@ -2050,6 +2051,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     closeModal(); closeServiceModal(); closeExpModal(); closeResourceModal();
     if (document.getElementById('try-overlay')?.classList.contains('open')) closeTryModal();
+    if (document.getElementById('prof-overlay')?.classList.contains('open')) closeProfileModal();
   }
   if (e.key === 'Enter' && document.getElementById('auth-overlay').style.display !== 'none') submitAuth();
   if (e.key === 'Enter' && document.getElementById('name-overlay')?.style.display !== 'none') submitDisplayName();
@@ -2774,6 +2776,9 @@ function initListeners() {
 
 // ── bootApp: called once display name is confirmed ────────────────────
 function bootApp() {
+  // Update profile button label to show current display name
+  const profBtn = document.getElementById('profile-btn');
+  if (profBtn && myDisplayName) profBtn.textContent = '👤 ' + myDisplayName;
   migrateFirestoreToShared(); // silent, no-op if already done
   initListeners();
   checkMigration();
@@ -2804,6 +2809,134 @@ firebase.auth().onAuthStateChanged(async user => {
   }
 });
 
+// ── Profile modal ────────────────────────────────────────────────────
+function openProfileModal() {
+  // Populate fields
+  document.getElementById('prof-email').textContent = currentUser?.email || '—';
+  document.getElementById('prof-name').value = myDisplayName || '';
+  // Clear password fields and messages
+  ['prof-cur-pw','prof-new-pw','prof-confirm-pw'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('prof-name-msg').style.display   = 'none';
+  document.getElementById('prof-pw-msg').style.display     = 'none';
+  document.getElementById('prof-pw-err').style.display     = 'none';
+  document.getElementById('prof-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeProfileModal() {
+  document.getElementById('prof-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function onProfileOverlayClick(e) {
+  if (e.target === document.getElementById('prof-overlay')) closeProfileModal();
+}
+
+async function saveProfileName() {
+  const name = document.getElementById('prof-name').value.trim();
+  const msg  = document.getElementById('prof-name-msg');
+  if (!name) { msg.style.cssText = 'display:block;color:var(--pass);font-size:12.5px;margin-top:6px;'; msg.textContent = 'Name cannot be empty.'; return; }
+  try {
+    await saveDisplayName(name);
+    myDisplayName = name;
+    document.getElementById('profile-btn').textContent = '👤 ' + name;
+    msg.style.cssText = 'display:block;color:var(--love);font-size:12.5px;margin-top:6px;';
+    msg.textContent = '✓ Name updated!';
+    setTimeout(() => { msg.style.display = 'none'; }, 2500);
+  } catch (e) {
+    msg.style.cssText = 'display:block;color:var(--pass);font-size:12.5px;margin-top:6px;';
+    msg.textContent = 'Error: ' + e.message;
+  }
+}
+
+async function saveProfilePassword() {
+  const curPw  = document.getElementById('prof-cur-pw').value;
+  const newPw  = document.getElementById('prof-new-pw').value;
+  const confPw = document.getElementById('prof-confirm-pw').value;
+  const msg    = document.getElementById('prof-pw-msg');
+  const err    = document.getElementById('prof-pw-err');
+  msg.style.display = 'none';
+  err.style.display = 'none';
+
+  if (!curPw || !newPw || !confPw) {
+    err.textContent = 'Please fill in all password fields.'; err.style.display = 'block'; return;
+  }
+  if (newPw.length < 6) {
+    err.textContent = 'New password must be at least 6 characters.'; err.style.display = 'block'; return;
+  }
+  if (newPw !== confPw) {
+    err.textContent = 'New passwords do not match.'; err.style.display = 'block'; return;
+  }
+  try {
+    // Re-authenticate first (required by Firebase before sensitive operations)
+    const credential = firebase.auth.EmailAuthProvider.credential(currentUser.email, curPw);
+    await currentUser.reauthenticateWithCredential(credential);
+    await currentUser.updatePassword(newPw);
+    ['prof-cur-pw','prof-new-pw','prof-confirm-pw'].forEach(id => { document.getElementById(id).value = ''; });
+    msg.style.cssText = 'display:block;color:var(--love);font-size:12.5px;margin-top:6px;';
+    msg.textContent = '✓ Password updated!';
+    setTimeout(() => { msg.style.display = 'none'; }, 2500);
+  } catch (e) {
+    err.textContent = authFriendlyError(e.code) || e.message;
+    err.style.display = 'block';
+  }
+}
+
 </script>
+
+<!-- ══ Profile modal ═══════════════════════════════════════════════════ -->
+<div class="overlay" id="prof-overlay" onclick="onProfileOverlayClick(event)">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-head">
+      <h2 class="modal-title">Your profile</h2>
+      <button class="modal-close" onclick="closeProfileModal()">✕</button>
+    </div>
+    <div class="modal-body" style="padding-bottom:20px;">
+
+      <!-- Email -->
+      <div class="form-section">
+        <label class="form-label">Email</label>
+        <div id="prof-email" style="font-size:13.5px;padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--surface-2);color:var(--text-muted);"></div>
+      </div>
+
+      <!-- Display name -->
+      <div class="form-section" style="margin-top:18px;">
+        <div class="form-group">
+          <label class="form-label" for="prof-name">Display name</label>
+          <input id="prof-name" type="text" class="form-input" maxlength="40" placeholder="Your name">
+          <div id="prof-name-msg" style="display:none;"></div>
+        </div>
+        <button class="btn-save" style="margin-top:10px;" onclick="saveProfileName()">Save name</button>
+      </div>
+
+      <!-- Divider -->
+      <div style="border-top:1px solid var(--border);margin:22px 0;"></div>
+
+      <!-- Change password -->
+      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:14px;">Change password</div>
+      <div class="form-section">
+        <div class="form-group" style="margin-bottom:10px;">
+          <label class="form-label" for="prof-cur-pw">Current password</label>
+          <input id="prof-cur-pw" type="password" class="form-input" autocomplete="current-password" placeholder="••••••••">
+        </div>
+        <div class="form-group" style="margin-bottom:10px;">
+          <label class="form-label" for="prof-new-pw">New password</label>
+          <input id="prof-new-pw" type="password" class="form-input" autocomplete="new-password" placeholder="At least 6 characters">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="prof-confirm-pw">Confirm new password</label>
+          <input id="prof-confirm-pw" type="password" class="form-input" autocomplete="new-password" placeholder="Repeat new password">
+        </div>
+        <div id="prof-pw-err" style="display:none;font-size:12.5px;color:var(--pass);background:var(--pass-bg);border:1px solid var(--pass);border-radius:var(--radius-sm);padding:8px 11px;margin-top:10px;"></div>
+        <div id="prof-pw-msg" style="display:none;"></div>
+        <button class="btn-save" style="margin-top:12px;" onclick="saveProfilePassword()">Update password</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

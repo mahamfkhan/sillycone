@@ -777,15 +777,108 @@
   [data-theme="dark"] .cat-other     { background: #1A2030; color: #90A0B8; }
 
   /* ── Responsive ─────────────────────────────────────────── */
-  @media (max-width: 640px) {
-    .app-header { padding: 0 16px; }
-    .header-inner { gap: 14px; }
+  /* ── Header action buttons ──────────────────────────────── */
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    margin-left: auto;
+  }
+  .header-btn {
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    padding: 6px 13px;
+    border: 1.5px solid var(--border);
+    border-radius: 7px;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: border-color .15s, color .15s;
+    white-space: nowrap;
+  }
+  .header-btn:hover { border-color: var(--text-muted); color: var(--text); }
+
+  /* ── Page controls row ──────────────────────────────────── */
+  .page-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  /* ── Responsive ─────────────────────────────────────────── */
+
+  /* Tablet */
+  @media (max-width: 860px) {
+    .header-inner { gap: 16px; }
     .brand-tagline { display: none; }
-    .page { padding: 22px 16px; }
+    .main-tab { font-size: 13px; padding: 6px 11px; }
+  }
+
+  /* Mobile */
+  @media (max-width: 600px) {
+    /* Header: brand + actions on row 1, tabs on row 2 */
+    .app-header { padding: 0 16px; }
+    .header-inner {
+      height: auto;
+      flex-wrap: wrap;
+      padding: 10px 0 0;
+      gap: 0;
+      align-items: center;
+    }
+    .brand { flex: 1; }
+    .header-actions { margin-left: 0; gap: 6px; }
+    .header-btn { font-size: 11.5px; padding: 5px 10px; }
+    .profile-name { display: none; } /* show just 👤 on mobile */
+    .main-tabs {
+      order: 10;
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      padding: 6px 0 0;
+      gap: 2px;
+      border-top: 1px solid var(--border);
+      margin-top: 8px;
+    }
+    .main-tabs::-webkit-scrollbar { display: none; }
+    .main-tab { font-size: 12.5px; padding: 8px 14px; white-space: nowrap; }
+
+    /* Pages */
+    .page { padding: 20px 16px; }
+    .page-header { flex-direction: column; align-items: stretch; gap: 14px; }
+    .page-controls { justify-content: flex-start; }
+    .page-title-group h1 { font-size: 22px; }
+
+    /* Cards */
+    .product-grid { grid-template-columns: 1fr; gap: 14px; }
     .form-row { grid-template-columns: 1fr; }
-    .product-grid { grid-template-columns: 1fr; }
-    .stats-bar .stat-card { min-width: 100px; }
     .pros-cons { grid-template-columns: 1fr; }
+
+    /* Filter stats: 2 per row */
+    .filter-stats { gap: 8px; }
+    .fstat { min-width: calc(50% - 4px); flex: 1 1 calc(50% - 4px); }
+    .fstat-count { font-size: 18px; }
+
+    /* Modal: full-screen on mobile */
+    .overlay { align-items: flex-end; padding: 0; }
+    .modal {
+      border-radius: var(--radius) var(--radius) 0 0;
+      max-height: 92dvh;
+      overflow-y: auto;
+      max-width: 100% !important;
+      width: 100%;
+    }
+
+    /* Verdict grid: single column */
+    .verdict-grid { grid-template-columns: 1fr; gap: 6px; }
+    .verdict-opt label { flex-direction: row; gap: 10px; padding: 10px 14px; justify-content: flex-start; }
+    .verdict-opt label .em { font-size: 20px; }
   }
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
@@ -908,8 +1001,10 @@
       <button class="main-tab" data-tab="experiences">Experiences</button>
       <button class="main-tab" data-tab="resources">Resources</button>
     </nav>
-    <button id="profile-btn" onclick="openProfileModal()" style="font-family:inherit;font-size:12.5px;font-weight:500;padding:6px 13px;border:1.5px solid var(--border);border-radius:7px;background:transparent;color:var(--text-muted);cursor:pointer;flex-shrink:0;transition:border-color .15s,color .15s;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" onmouseover="this.style.borderColor='var(--text-muted)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">👤 Profile</button>
-    <button onclick="logout()" style="font-family:inherit;font-size:12.5px;font-weight:500;padding:6px 13px;border:1.5px solid var(--border);border-radius:7px;background:transparent;color:var(--text-muted);cursor:pointer;flex-shrink:0;transition:border-color .15s,color .15s;" onmouseover="this.style.borderColor='var(--text-muted)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">Sign out</button>
+    <div class="header-actions">
+      <button id="profile-btn" onclick="openProfileModal()" class="header-btn">👤 <span class="profile-name">Profile</span></button>
+      <button onclick="logout()" class="header-btn">Sign out</button>
+    </div>
   </div>
 </header>
 
@@ -921,7 +1016,7 @@
       <h1>Products</h1>
       <p>Your honest, unfiltered takes on everything you've tried</p>
     </div>
-    <div style="display:flex;gap:10px;align-items:center;flex-shrink:0;">
+    <div class="page-controls">
       <select class="sort-select" id="sort-select" onchange="setSort(this.value)">
         <option value="newest">Newest first</option>
         <option value="oldest">Oldest first</option>
@@ -977,7 +1072,7 @@
       <h1>Services</h1>
       <p>Apps, professionals, and everything in between</p>
     </div>
-    <div style="display:flex;gap:10px;align-items:center;flex-shrink:0;">
+    <div class="page-controls">
       <button class="btn-add" onclick="openServiceModal()">
         <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
           <path d="M7.5 2v11M2 7.5h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -996,7 +1091,7 @@
       <h1>Experiences</h1>
       <p>Classes, concerts, swim sessions — everything you've done or want to do</p>
     </div>
-    <div style="display:flex;gap:10px;align-items:center;flex-shrink:0;">
+    <div class="page-controls">
       <button class="btn-add" id="btn-add-exp" onclick="openExpModal()">
         <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
           <path d="M7.5 2v11M2 7.5h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -1230,7 +1325,7 @@
       <h1>Resources</h1>
       <p>Useful links, guides, and websites worth bookmarking</p>
     </div>
-    <div style="display:flex;gap:10px;align-items:center;flex-shrink:0;">
+    <div class="page-controls">
       <button class="btn-add" onclick="openResourceModal()">
         <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
           <path d="M7.5 2v11M2 7.5h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -2665,7 +2760,7 @@ function initListeners() {
 // ── bootApp: called once display name is confirmed ────────────────────
 async function bootApp() {
   const profBtn = document.getElementById('profile-btn');
-  if (profBtn && myDisplayName) profBtn.textContent = '👤 ' + myDisplayName;
+  if (profBtn && myDisplayName) { const span = profBtn.querySelector('.profile-name'); if (span) span.textContent = myDisplayName; }
   // Await migration so legacy data is in shared collections BEFORE listeners start
   initListeners();
 }
@@ -2728,7 +2823,7 @@ async function saveProfileName() {
   try {
     await saveDisplayName(name);
     myDisplayName = name;
-    document.getElementById('profile-btn').textContent = '👤 ' + name;
+    const span = document.querySelector('#profile-btn .profile-name'); if (span) span.textContent = name;
     msg.style.cssText = 'display:block;color:var(--love);font-size:12.5px;margin-top:6px;';
     msg.textContent = '✓ Name updated!';
     setTimeout(() => { msg.style.display = 'none'; }, 2500);
